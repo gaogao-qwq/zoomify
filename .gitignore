@@ -1,0 +1,8 @@
+lib
+build
+xcuserdata
+ftplugin
+
+.DS_Store
+.cache
+compile_commands.json

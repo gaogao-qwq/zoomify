@@ -1,0 +1,15 @@
+---
+Language: "Cpp"
+BasedOnStyle: "Google"
+UseTab: "Never"
+ColumnLimit: 0
+TabWidth: 4
+IndentWidth: 4
+---
+Language: "ObjC"
+BasedOnStyle: "Google"
+UseTab: "Never"
+ColumnLimit: 0
+TabWidth: 4
+IndentWidth: 4
+ObjCBlockIndentWidth: 2
