@@ -32,9 +32,9 @@ ifeq ($(BUILD_MODE),RELEASE)
 	EXTRA_FLAG := -O3
 endif
 
-all: magnifier
+all: zoomify
 
-magnifier:
+zoomify:
 	@mkdir -p build
 ifeq ($(OS),Linux)
 	@$(MAKE) -f $(THIS_FILE) linux_build
@@ -47,18 +47,18 @@ windows_build:
 	@echo 'TODO: implement Windows build'
 
 linux_build:
-	$(CC) -o build/magnifier \
+	$(CC) -o build/zoomify \
 		-I include -L lib -lm \
 		-Wall -Wextra $(DEBUG_FLAG) $(EXTRA_FLAG) \
-		src/magnifier.c lib/libraylib.a
+		src/zoomify.c lib/libraylib.a
 
 macos_build:
 ifeq ($(BUILD_MODE),DEBUG)
-	xcodebuild -configuration Debug -scheme magnifier \
+	xcodebuild -configuration Debug -scheme zoomify \
 		-destination 'platform=macOS,arch=arm64' SYMROOT="build/Debug" DSTROOT="build/Release"
 endif
 ifeq ($(BUILD_MODE),RELEASE)
-	xcodebuild -configuration Release -scheme magnifier \
+	xcodebuild -configuration Release -scheme zoomify \
 		-destination 'platform=macOS,arch=arm64' SYMROOT="build/Debug" DSTROOT="build/Release"
 endif
 

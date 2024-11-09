@@ -1,7 +1,6 @@
 #include <limits.h>
 #include <math.h>
 #include <raylib.h>
-#include <rlgl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
