@@ -1,10 +1,11 @@
+#import "macos_screenshot.h"
 #import <Foundation/Foundation.h>
 #import <ImageIO/ImageIO.h>
 #import <ScreenCaptureKit/ScreenCaptureKit.h>
 #import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
 
-const char **captureScreenshot(size_t *length) {
-    __block NSMutableArray *urlArray = [NSMutableArray array];
+const ScreenshotContext *captureScreenshot(size_t *count) {
+    __block NSMutableArray *screenshot = [NSMutableArray array];
     __block bool done = false;
 
     [SCShareableContent getShareableContentWithCompletionHandler:^(
@@ -12,6 +13,8 @@ const char **captureScreenshot(size_t *length) {
                             NSError *_Nullable error) {
       if (error) {
           NSLog(@"error: %@", [error localizedDescription]);
+          done = true;
+          return;
       }
 
       SCDisplay *display = shareableContent.displays[0];
@@ -31,46 +34,42 @@ const char **captureScreenshot(size_t *length) {
                      return;
                  }
 
-                 // get formatted date string
-                 NSDateFormatter *dateFormatter = [[NSDateFormatter alloc] init];
-                 [dateFormatter setDateFormat:@"yyyy-MM-dd_HH:mm:ss"];
-                 NSString *dateString = [dateFormatter stringFromDate:[NSDate date]];
-
-                 // get cache directory path
-                 NSArray<NSString *> *cacheDirs = NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES);
-                 NSString *cacheDirPath = [cacheDirs firstObject];
-
-                 NSURL *outputURL = [NSURL fileURLWithPath:[NSString stringWithFormat:@"%@/%@.png", cacheDirPath, dateString]];
-                 CGImageDestinationRef dest = CGImageDestinationCreateWithURL((CFURLRef)outputURL, (CFStringRef)UTTypePNG.identifier, 1, nil);
+                 // create PNG destination context
+                 NSMutableData *pngData = [NSMutableData data];
+                 CGImageDestinationRef dest = CGImageDestinationCreateWithData((__bridge CFMutableDataRef)pngData, (CFStringRef)UTTypePNG.identifier, 1, nil);
                  if (!dest) {
                      NSLog(@"dest is nil");
                      done = true;
                      return;
                  }
 
+                 // add CGImage to destination
                  CGImageDestinationAddImage(dest, sampleBuffer, nil);
                  if (CGImageDestinationFinalize(dest)) {
-                     [urlArray addObject:outputURL.path];
+                     [screenshot addObject:pngData];
+                 } else {
+                     NSLog(@"failed to finalize image to destination");
                  }
+
                  done = true;
                }];
     }];
 
     while (!done) {
-        [NSThread sleepForTimeInterval:0.1];
+        [NSThread sleepForTimeInterval:0.01];
     }
 
-    *length = [urlArray count];
-    const char **ret = malloc(*length * sizeof(char *));
-    for (size_t i = 0; i < *length; ++i) {
-        ret[i] = strdup([urlArray[i] UTF8String]);
-    }
-    return ret;
-}
+    *count = [screenshot count];
+    if (!*count) return NULL;
 
-void deallocStringArray(char **array, size_t length) {
-    for (size_t i = 0; i < length; ++i) {
-        free(array[i]);
+    ScreenshotContext *contextArray = malloc(*count * sizeof(ScreenshotContext));
+    for (size_t i = 0; i < *count; ++i) {
+        size_t length = [screenshot[i] length];
+        // copy screenshot image data to c array
+        contextArray[i].data = malloc(length);
+        memcpy(contextArray[i].data, [screenshot[i] bytes], length);
+        contextArray->size = length;
     }
-    free(array);
+
+    return contextArray;
 }

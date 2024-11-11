@@ -59,28 +59,32 @@ void drawDebugInfo(void);
 void drawKeystrokeTips(void);
 
 int main(void) {
-    size_t screenshotCnt;
-    const char **screenshotPath;
+    size_t contextCnt;
+    const ScreenshotContext *contextArray;
 
-    screenshotPath = captureScreenshot(&screenshotCnt);
+    contextArray = captureScreenshot(&contextCnt);
+    if (!contextCnt) {
+        fprintf(stderr, "failed to capture screenshot\n");
+        return EXIT_FAILURE;
+    }
 
-    printf("screenshot count: %lu", screenshotCnt);
-    for (size_t i = 0; i < screenshotCnt; ++i) {
-        fprintf(stderr, "Screenshot successfully saved to %s\n",
-                screenshotPath[i]);
+    printf("screenshot count: %lu", contextCnt);
+    for (size_t i = 0; i < contextCnt; ++i) {
+        fprintf(stderr, "screenshot %lu size: %lu\n", i, contextArray[i].size);
     }
 
     SetConfigFlags(FLAG_VSYNC_HINT | FLAG_MSAA_4X_HINT | FLAG_WINDOW_HIGHDPI);
     InitWindow(screenWidth, screenHeight, "magnifier");
 
     /* load screenshot into memory */
-    Image screenshot = LoadImage(screenshotPath[0]);
-    remove(screenshotPath[0]);
+    Image screenshot = LoadImageFromMemory(".png", contextArray[0].data, (int)contextArray[0].size);
     Texture2D screenshotTexture = LoadTextureFromImage(screenshot);
 
     /* free memory */
-    deallocStringArray((char **)screenshotPath, screenshotCnt);
-    screenshotPath = NULL;
+    for (size_t i = 0; i < contextCnt; ++i) {
+        free(contextArray[i].data);
+    }
+    free((ScreenshotContext *)contextArray);
     UnloadImage(screenshot);
 
     /* load fragment shader */

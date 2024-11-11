@@ -3,7 +3,11 @@
 
 #include <stddef.h>
 
-const char **captureScreenshot(size_t *);
-void deallocStringArray(char **, size_t);
+typedef struct ScreenshotContext {
+    unsigned char *data; /* image data */
+    size_t size;         /* image size */
+} ScreenshotContext;
+
+extern const ScreenshotContext *captureScreenshot(size_t *);
 
 #endif
