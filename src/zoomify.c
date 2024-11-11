@@ -8,7 +8,7 @@
 #if defined(__APPLE__)
 #include "macos_screenshot.h"
 #elif defined(__linux__)
-// TODO: Linux implementation
+#include "linux_screenshot.h"
 #endif
 
 #define ZOOM_MIN ((float)0.01f)
@@ -68,7 +68,7 @@ int main(void) {
         return EXIT_FAILURE;
     }
 
-    printf("screenshot count: %lu", contextCnt);
+    printf("screenshot count: %lu\n", contextCnt);
     for (size_t i = 0; i < contextCnt; ++i) {
         fprintf(stderr, "screenshot %lu size: %lu\n", i, contextArray[i].size);
     }

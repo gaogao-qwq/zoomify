@@ -48,9 +48,9 @@ windows_build:
 
 linux_build:
 	$(CC) -o build/zoomify \
-		-I include -L lib -lm \
+		-I include -L lib -lm -lX11 \
 		-Wall -Wextra $(DEBUG_FLAG) $(EXTRA_FLAG) \
-		src/zoomify.c lib/libraylib.a
+		src/zoomify.c src/linux_screenshot.c lib/libraylib.a
 
 macos_build:
 ifeq ($(BUILD_MODE),DEBUG)
