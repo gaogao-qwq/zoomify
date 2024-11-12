@@ -48,8 +48,8 @@ struct SpotlightShaderUniformContext {
     int textureHeight;
 } splShaderUniformContext = {.enable = false, .radius = 100.0f};
 
-static Camera2D camera = {.zoom = 1.0f};
-static Shader splShader;
+static Camera2D camera = {0};
+static Shader splShader = {0};
 
 void updateInputContext(void);
 void updateSpotlightShaderUniformContext(void);
@@ -104,6 +104,8 @@ int main(void) {
     ToggleFullscreen();
     screenWidth = GetRenderWidth();
     screenHeight = GetRenderHeight();
+    /* calculate camera zoom */
+    camera.zoom = fminf((float)screenWidth / (float)screenshotTexture.width, (float)screenHeight / (float)screenshotTexture.height);
 
     RenderTexture2D splMask = LoadRenderTexture(screenWidth, screenHeight);
 
