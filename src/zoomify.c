@@ -16,7 +16,8 @@
 #define SPL_RADIUS_MIN ((float)1.0f)
 #define SPL_RADIUS_MAX ((float)500.0f)
 
-static int screenWidth = 800, screenHeight = 600;
+static int screenWidth, screenHeight;
+static int renderWidth, renderHeight;
 
 static bool showKeystrokeTips = true;
 #if defined(DEBUG)
@@ -73,8 +74,9 @@ int main(void) {
         fprintf(stderr, "screenshot %lu size: %lu\n", i, contextArray[i].size);
     }
 
-    SetConfigFlags(FLAG_VSYNC_HINT | FLAG_MSAA_4X_HINT | FLAG_WINDOW_HIGHDPI);
+    SetConfigFlags(FLAG_VSYNC_HINT | FLAG_MSAA_4X_HINT);
     InitWindow(screenWidth, screenHeight, "magnifier");
+    ToggleFullscreen();
 
     /* load screenshot into memory */
     Image screenshot = LoadImageFromMemory(".png", contextArray[0].data, (int)contextArray[0].size);
@@ -100,12 +102,10 @@ int main(void) {
     int currentMonitor = GetCurrentMonitor();
     screenWidth = GetMonitorWidth(currentMonitor);
     screenHeight = GetMonitorHeight(currentMonitor);
-    SetWindowSize(screenWidth, screenHeight);
-    ToggleFullscreen();
-    screenWidth = GetRenderWidth();
-    screenHeight = GetRenderHeight();
+    renderWidth = GetRenderWidth();
+    renderHeight = GetRenderHeight();
     /* calculate camera zoom */
-    camera.zoom = fminf((float)screenWidth / (float)screenshotTexture.width, (float)screenHeight / (float)screenshotTexture.height);
+    camera.zoom = fminf((float)renderWidth / (float)screenshotTexture.width, (float)renderHeight / (float)screenshotTexture.height);
 
     RenderTexture2D splMask = LoadRenderTexture(screenWidth, screenHeight);
 
