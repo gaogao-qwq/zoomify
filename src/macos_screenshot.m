@@ -3,6 +3,29 @@
 #import <ImageIO/ImageIO.h>
 #import <ScreenCaptureKit/ScreenCaptureKit.h>
 #import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
+#import <objc/runtime.h>
+
+/* utility extension for debugging */
+@implementation NSObject (propertiesToString)
+- (NSString *)propertiesToString {
+    NSMutableString *ret = [NSMutableString stringWithString:@""];
+    @autoreleasepool {
+        uint32 propertyCount;
+        objc_property_t *propertyArray = class_copyPropertyList([self class], &propertyCount);
+        for (uint32 i = 0; i < propertyCount; ++i) {
+            objc_property_t property = propertyArray[i];
+            NSString *propertyName = [[NSString alloc] initWithUTF8String:property_getName(property)];
+            @try {
+                [ret appendFormat:@"property: %@, value: %@\n", propertyName, [self valueForKey:propertyName]];
+            } @catch (NSException *exception) {
+                continue;
+            }
+        }
+        free(propertyArray);
+    }
+    return ret;
+}
+@end
 
 const ScreenshotContext *captureScreenshot(size_t *count) {
     __block NSMutableArray *screenshot = [NSMutableArray array];
@@ -19,10 +42,20 @@ const ScreenshotContext *captureScreenshot(size_t *count) {
 
       SCDisplay *display = shareableContent.displays[0];
       SCContentFilter *filter = [[SCContentFilter alloc] initWithDisplay:display excludingWindows:@[]];
-      SCStreamConfiguration *config = [[SCStreamConfiguration alloc] init];
-      config.width = display.width;
-      config.height = display.height;
-      config.captureResolution = SCCaptureResolutionBest;
+      SCStreamConfiguration *config;
+
+      config = [[SCStreamConfiguration alloc] init];
+      config.width = filter.contentRect.size.width * filter.pointPixelScale;
+      config.height = filter.contentRect.size.height * filter.pointPixelScale;
+      config.pixelFormat = kCVPixelFormatType_64RGBAHalf;
+      config.colorSpaceName = kCGColorSpaceExtendedDisplayP3;
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_VERSION_15_0
+      config.captureDynamicRange = SCCaptureDynamicRangeHDRLocalDisplay;
+#endif
+
+#if defined(DEBUG)
+      NSLog(@"%@", [config propertiesToString]);
+#endif
 
       [SCScreenshotManager
           captureImageWithFilter:filter
