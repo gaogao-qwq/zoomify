@@ -37,6 +37,16 @@
 		72B043AA2CDB363700925860 /* CoreAudio.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreAudio.framework; path = System/Library/Frameworks/CoreAudio.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		72B0374B2CE2E8EE0035BEB3 /* Exceptions for "src" folder in "zoomify" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				linux_screenshot.c,
+			);
+			target = 72B043752CDA246000925860 /* zoomify */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		72B043942CDA2B4C00925860 /* include */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
@@ -45,6 +55,9 @@
 		};
 		72B043972CDA2B6400925860 /* src */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				72B0374B2CE2E8EE0035BEB3 /* Exceptions for "src" folder in "zoomify" target */,
+			);
 			path = src;
 			sourceTree = "<group>";
 		};
