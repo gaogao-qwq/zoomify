@@ -36,9 +36,9 @@ all: zoomify
 
 configure:
 	git submodule update --init --depth=1
-	cd raylib/src && make PLATFORM=PLATFORM_DESKTOP
-	mkdir -p lib
-	mv libraylib.a ../../lib
+	cd raylib/src && $(MAKE) PLATFORM=PLATFORM_DESKTOP
+	@mkdir -p lib
+	mv raylib/src/libraylib.a lib
 
 zoomify:
 	@mkdir -p build
