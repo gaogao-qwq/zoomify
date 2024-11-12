@@ -1,4 +1,4 @@
-.PHONY: all clean
+.PHONY: all configure clean
 
 PLATFORM   ?= PLATFORM_DESKTOP
 BUILD_MODE ?= DEBUG
@@ -33,6 +33,12 @@ ifeq ($(BUILD_MODE),RELEASE)
 endif
 
 all: zoomify
+
+configure:
+	git submodule update --init --depth=1
+	cd raylib/src && make PLATFORM=PLATFORM_DESKTOP
+	mkdir -p lib
+	mv libraylib.a ../../lib
 
 zoomify:
 	@mkdir -p build
