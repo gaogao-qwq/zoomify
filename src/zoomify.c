@@ -1,6 +1,6 @@
 #include <limits.h>
-#include <math.h>
 #include <raylib.h>
+#include <raymath.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -14,11 +14,14 @@
 #define ZOOM_MIN ((float)0.01f)
 #define ZOOM_MAX ((float)100.0f)
 #define SPL_RADIUS_MIN ((float)1.0f)
-#define SPL_RADIUS_MAX ((float)500.0f)
+#define SPL_RADIUS_MAX ((float)1000.0f)
+#define SPL_OPACITY_MIN ((float)0.0f)
+#define SPL_OPACITY_MAX ((float)0.9f)
 
 static int screenWidth, screenHeight;
 static int renderWidth, renderHeight;
 
+static bool showSpotlight = false;
 static bool showKeystrokeTips = true;
 #if defined(DEBUG)
 static bool showDebugInfo = true;
@@ -31,33 +34,42 @@ struct InputContext {
     Vector2 mouseWorldPos;
     Vector2 mouseDelta;
     float wheelDelta;
-} inputContext = {0};
+} inputCtx = {0};
+
+struct CameraContext {
+    Camera2D camera;
+    float targetZoom;
+} cameraCtx = {0};
 
 struct SpotlightShaderUniformLocationContext {
-    int enable;
+    int opacity;
     int center;
     int radius;
     int textureWidth;
     int textureHeight;
-} splShaderLocContext = {0};
+} splShaderLocCtx = {0};
 
-struct SpotlightShaderUniformContext {
-    int enable;
+struct SpotlightShaderContext {
+    bool enable;
+    float currentOpacity;
+    float targetOpacity;
     float center[2];
-    float radius;
+    float currentRadius;
+    float targetRadius;
     int textureWidth;
     int textureHeight;
-} splShaderUniformContext = {.enable = false, .radius = 100.0f};
+} splShaderCtx = {.targetRadius = 100.0f};
 
-static Camera2D camera = {0};
 static Shader splShader = {0};
 
-void updateInputContext(void);
-void updateSpotlightShaderUniformContext(void);
-void updateSpotlightShaderUniformValue(void);
-void handleInput(void);
-void drawDebugInfo(void);
-void drawKeystrokeTips(void);
+static void getSpotlightShaderUniformLocation(void);
+static void updateInputContext(void);
+static void updateCameraContext(void);
+static void updateSpotlightShaderContext(void);
+static void setSpotlightShaderUniformValues(void);
+static void handleInput(void);
+static void drawDebugInfo(void);
+static void drawKeystrokeTips(void);
 
 int main(void) {
     size_t contextCnt;
@@ -92,11 +104,7 @@ int main(void) {
     /* load fragment shader */
     splShader = LoadShader("", "src/spotlight.glsl");
     /* get shader uniform location */
-    splShaderLocContext.enable = GetShaderLocation(splShader, "enable");
-    splShaderLocContext.center = GetShaderLocation(splShader, "center");
-    splShaderLocContext.radius = GetShaderLocation(splShader, "radius");
-    splShaderLocContext.textureWidth = GetShaderLocation(splShader, "textureWidth");
-    splShaderLocContext.textureHeight = GetShaderLocation(splShader, "textureHeight");
+    getSpotlightShaderUniformLocation();
 
     /* get resolution info */
     int currentMonitor = GetCurrentMonitor();
@@ -104,30 +112,26 @@ int main(void) {
     screenHeight = GetMonitorHeight(currentMonitor);
     renderWidth = GetRenderWidth();
     renderHeight = GetRenderHeight();
+
     /* calculate camera zoom */
-    camera.zoom = fminf((float)renderWidth / (float)screenshotTexture.width, (float)renderHeight / (float)screenshotTexture.height);
+    cameraCtx.camera.zoom = fminf((float)renderWidth / (float)screenshotTexture.width, (float)renderHeight / (float)screenshotTexture.height);
+    cameraCtx.targetZoom = cameraCtx.camera.zoom;
 
     RenderTexture2D splMask = LoadRenderTexture(screenWidth, screenHeight);
 
     // clang-format off
     while(!WindowShouldClose()) {
-        /* update input context */
-        updateInputContext();
-
-        /* handle user input */
-        handleInput();
-
-        /* update shader uniform context */
-        updateSpotlightShaderUniformContext();
-
-        /* update shader uniform value */
-        updateSpotlightShaderUniformValue();
+        updateInputContext();              /* update input context */
+        handleInput();                     /* handle user input */
+        updateCameraContext();             /* update camera context */
+        updateSpotlightShaderContext();    /* update shader context */
+        setSpotlightShaderUniformValues(); /* set shader uniform value */
 
         /* rendering */
         BeginDrawing();
             ClearBackground(BLACK);
 
-            BeginMode2D(camera);
+            BeginMode2D(cameraCtx.camera);
                 DrawTexture(screenshotTexture, 0, 0, WHITE);
             EndMode2D();
 
@@ -156,53 +160,86 @@ int main(void) {
     return EXIT_SUCCESS;
 }
 
+void getSpotlightShaderUniformLocation(void) {
+    splShaderLocCtx.opacity = GetShaderLocation(splShader, "opacity");
+    splShaderLocCtx.center = GetShaderLocation(splShader, "center");
+    splShaderLocCtx.radius = GetShaderLocation(splShader, "radius");
+    splShaderLocCtx.textureWidth = GetShaderLocation(splShader, "textureWidth");
+    splShaderLocCtx.textureHeight = GetShaderLocation(splShader, "textureHeight");
+}
+
 void updateInputContext(void) {
-    inputContext.mousePos = GetMousePosition();
-    inputContext.mouseWorldPos = GetScreenToWorld2D(GetMousePosition(), camera);
-    inputContext.mouseDelta = GetMouseDelta();
-    inputContext.wheelDelta = GetMouseWheelMove();
+    inputCtx.mousePos = GetMousePosition();
+    inputCtx.mouseWorldPos = GetScreenToWorld2D(GetMousePosition(), cameraCtx.camera);
+    inputCtx.mouseDelta = GetMouseDelta();
+    inputCtx.wheelDelta = GetMouseWheelMove();
 }
 
-void updateSpotlightShaderUniformContext(void) {
-    splShaderUniformContext.center[0] = GetMouseX();
-    splShaderUniformContext.center[1] = GetMouseY();
-    splShaderUniformContext.textureWidth = GetRenderWidth();
-    splShaderUniformContext.textureHeight = GetRenderHeight();
+void updateCameraContext(void) {
+    float deltaTime = GetFrameTime();
+
+    if (cameraCtx.camera.zoom < cameraCtx.targetZoom) {
+        cameraCtx.camera.zoom = Clamp(cameraCtx.camera.zoom + deltaTime * 5.0f, ZOOM_MIN, cameraCtx.targetZoom);
+    } else {
+        cameraCtx.camera.zoom = Clamp(cameraCtx.camera.zoom - deltaTime * 5.0f, cameraCtx.targetZoom, ZOOM_MAX);
+    }
 }
 
-void updateSpotlightShaderUniformValue(void) {
-    SetShaderValue(splShader, splShaderLocContext.enable, &splShaderUniformContext.enable, SHADER_UNIFORM_INT);
-    SetShaderValue(splShader, splShaderLocContext.center, splShaderUniformContext.center, SHADER_UNIFORM_VEC2);
-    SetShaderValue(splShader, splShaderLocContext.radius, &splShaderUniformContext.radius, SHADER_UNIFORM_FLOAT);
-    SetShaderValue(splShader, splShaderLocContext.textureWidth, &splShaderUniformContext.textureWidth, SHADER_UNIFORM_INT);
-    SetShaderValue(splShader, splShaderLocContext.textureHeight, &splShaderUniformContext.textureHeight, SHADER_UNIFORM_INT);
+void updateSpotlightShaderContext(void) {
+    float deltaTime = GetFrameTime();
+
+    if (splShaderCtx.currentOpacity < splShaderCtx.targetOpacity) {
+        splShaderCtx.currentOpacity = Clamp(splShaderCtx.currentOpacity + deltaTime * 5.0f, SPL_OPACITY_MIN, splShaderCtx.targetOpacity);
+    } else {
+        splShaderCtx.currentOpacity = Clamp(splShaderCtx.currentOpacity - deltaTime * 5.0f, splShaderCtx.targetOpacity, SPL_OPACITY_MAX);
+    }
+
+    if (splShaderCtx.currentRadius < splShaderCtx.targetRadius) {
+        splShaderCtx.currentRadius = Clamp(splShaderCtx.currentRadius + deltaTime * 500.0f, SPL_RADIUS_MIN, splShaderCtx.targetRadius);
+    } else {
+        splShaderCtx.currentRadius = Clamp(splShaderCtx.currentRadius - deltaTime * 500.0f, splShaderCtx.targetRadius, SPL_RADIUS_MAX);
+    }
+
+    splShaderCtx.center[0] = inputCtx.mousePos.x;
+    splShaderCtx.center[1] = inputCtx.mousePos.y;
+    splShaderCtx.textureWidth = renderWidth;
+    splShaderCtx.textureHeight = renderHeight;
+}
+
+void setSpotlightShaderUniformValues(void) {
+    SetShaderValue(splShader, splShaderLocCtx.opacity, &splShaderCtx.currentOpacity, SHADER_UNIFORM_FLOAT);
+    SetShaderValue(splShader, splShaderLocCtx.center, splShaderCtx.center, SHADER_UNIFORM_VEC2);
+    SetShaderValue(splShader, splShaderLocCtx.radius, &splShaderCtx.currentRadius, SHADER_UNIFORM_FLOAT);
+    SetShaderValue(splShader, splShaderLocCtx.textureWidth, &splShaderCtx.textureWidth, SHADER_UNIFORM_INT);
+    SetShaderValue(splShader, splShaderLocCtx.textureHeight, &splShaderCtx.textureHeight, SHADER_UNIFORM_INT);
 }
 
 void handleInput(void) {
     if (IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
-        camera.target.x += inputContext.mouseDelta.x * (-1.0f / camera.zoom);
-        camera.target.y += inputContext.mouseDelta.y * (-1.0f / camera.zoom);
+        Vector2 targetDelta = {inputCtx.mouseDelta.x * (-1.0f / cameraCtx.camera.zoom),
+                               inputCtx.mouseDelta.y * (-1.0f / cameraCtx.camera.zoom)};
+        cameraCtx.camera.target = Vector2Add(cameraCtx.camera.target, targetDelta);
     }
 
-    if (inputContext.wheelDelta != 0.0f) {
+    if (inputCtx.wheelDelta != 0.0f) {
         /* calculate scale factor */
-        float scaleFactor = 1.0f + (0.25f * fabsf(inputContext.wheelDelta));
-        if (inputContext.wheelDelta < 0) scaleFactor = 1.0f / scaleFactor;
+        float scaleFactor = 1.0f + (0.25f * fabsf(inputCtx.wheelDelta));
+        if (inputCtx.wheelDelta < 0) scaleFactor = 1.0f / scaleFactor;
 
-        if (splShaderUniformContext.enable) {
+        if (showSpotlight) {
             /* scroll to change spotlight radius */
-            float radius = splShaderUniformContext.radius * scaleFactor;
-            if (radius > SPL_RADIUS_MIN && radius < SPL_RADIUS_MAX) {
-                splShaderUniformContext.radius = radius;
+            float radius = splShaderCtx.currentRadius * scaleFactor;
+            if (radius >= SPL_RADIUS_MIN && radius <= SPL_RADIUS_MAX) {
+                splShaderCtx.targetRadius = radius;
             }
         } else {
             /* scroll to zoom in & out */
-            camera.offset = inputContext.mousePos;
-            camera.target = inputContext.mouseWorldPos;
+            cameraCtx.camera.offset = inputCtx.mousePos;
+            cameraCtx.camera.target = inputCtx.mouseWorldPos;
 
-            float zoom = camera.zoom * scaleFactor;
-            if (zoom > ZOOM_MIN && zoom < ZOOM_MAX) {
-                camera.zoom = zoom;
+            float zoom = cameraCtx.camera.zoom * scaleFactor;
+            if (zoom >= ZOOM_MIN && zoom <= ZOOM_MAX) {
+                cameraCtx.targetZoom = zoom;
             }
         }
     }
@@ -216,18 +253,24 @@ void handleInput(void) {
     }
 
     if (IsKeyPressed(KEY_L)) {
-        splShaderUniformContext.enable = !splShaderUniformContext.enable;
+        showSpotlight = !showSpotlight;
+        if (showSpotlight) {
+            splShaderCtx.currentRadius = splShaderCtx.targetRadius + 100.0f;
+            splShaderCtx.targetOpacity = SPL_OPACITY_MAX;
+        } else {
+            splShaderCtx.targetOpacity = SPL_OPACITY_MIN;
+        }
     }
 }
 
 void drawDebugInfo(void) {
     DrawRectangle(10, 30, 500, 120, Fade(GRAY, 0.95f));
     DrawRectangleLinesEx((Rectangle){10, 30, 500, 120}, 2.0f, BLACK);
-    DrawText(TextFormat("zoom: %f", camera.zoom), 20, 40, 20, RAYWHITE);
-    DrawText(TextFormat("camera offset: (%f, %f)", camera.offset.x, camera.offset.y), 20, 60, 20, RAYWHITE);
-    DrawText(TextFormat("camera target: (%f, %f)", camera.target.x, camera.target.y), 20, 80, 20, RAYWHITE);
-    DrawText(TextFormat("mouse position: (%f, %f)", inputContext.mousePos.x, inputContext.mousePos.y), 20, 100, 20, RAYWHITE);
-    DrawText(TextFormat("mouse world position: (%f, %f)", inputContext.mouseWorldPos.x, inputContext.mouseWorldPos.y), 20, 120, 20, RAYWHITE);
+    DrawText(TextFormat("zoom: %f", cameraCtx.camera.zoom), 20, 40, 20, RAYWHITE);
+    DrawText(TextFormat("camera offset: (%f, %f)", cameraCtx.camera.offset.x, cameraCtx.camera.offset.y), 20, 60, 20, RAYWHITE);
+    DrawText(TextFormat("camera target: (%f, %f)", cameraCtx.camera.target.x, cameraCtx.camera.target.y), 20, 80, 20, RAYWHITE);
+    DrawText(TextFormat("mouse position: (%f, %f)", inputCtx.mousePos.x, inputCtx.mousePos.y), 20, 100, 20, RAYWHITE);
+    DrawText(TextFormat("mouse world position: (%f, %f)", inputCtx.mouseWorldPos.x, inputCtx.mouseWorldPos.y), 20, 120, 20, RAYWHITE);
 }
 
 void drawKeystrokeTips(void) {

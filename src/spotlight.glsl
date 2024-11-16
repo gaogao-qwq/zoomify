@@ -11,7 +11,7 @@ uniform vec4 colDiffuse;
 // Output fragment color
 out vec4 finalColor;
 
-uniform int enable;
+uniform float opacity;
 uniform vec2 center;
 uniform float radius;
 uniform int textureWidth;
@@ -24,16 +24,13 @@ void main() {
     float dist = length(texCenter);
     vec4 color = fragColor;
 
-    if (enable == 1) {
-        if (dist > radius) {
-            float gray = 0.05;
-            float opacity = 0.95;
-            color.x = gray;
-            color.y = gray;
-            color.z = gray;
-            color.w = opacity;
-        }
-    }
+	if (dist > radius) {
+		float gray = 0.05;
+		color.x = gray;
+		color.y = gray;
+		color.z = gray;
+		color.w = opacity;
+	}
 
     finalColor = color;
 }
