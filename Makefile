@@ -31,7 +31,7 @@ ifeq ($(BUILD_MODE),DEBUG)
 endif
 
 ifeq ($(BUILD_MODE),RELEASE)
-	EXTRA_FLAG := -O3
+	EXTRA_FLAG := -O3 -DRELEASE
 endif
 
 all: zoomify
