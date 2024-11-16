@@ -44,7 +44,7 @@ configure:
 
 zoomify:
 	@if test ! -f "lib/libraylib.a"; then \
-		echo "WARNING: $(LIBRAYLIB_PATH) not found, running 'make configure'...";\
+		echo "WARNING: $(LIBRAYLIB_PATH) not found, running 'make configure'..."; \
 		$(MAKE) -f $(THIS_FILE) configure; \
 	fi
 	@mkdir -p build
