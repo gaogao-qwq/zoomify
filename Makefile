@@ -85,10 +85,10 @@ endif
 
 uninstall:
 ifeq ($(OS),MACOS)
-	rm /usr/bin/zoomify
+	rm /usr/local/bin/zoomify
 endif
 ifeq ($(OS),LINUX)
-	rm /usr/bin/zoomify
+	rm /usr/local/bin/zoomify
 endif
 
 clean:
