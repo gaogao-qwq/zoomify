@@ -1,26 +1,28 @@
-.PHONY: all configure clean
+.PHONY: all zoomify configure clean install uninstall
 
 PLATFORM   ?= PLATFORM_DESKTOP
 BUILD_MODE ?= DEBUG
-OS         ?= Unknown
+OS         ?= UNKNOWN
 THIS_FILE  ?= $(lastword $(MAKEFILE_LIST))
 
+LIBRAYLIB_PATH ?= lib/libraylib.a
+
 ifeq ($(OS),Windows_NT)
-	OS = Windows
+	OS = WINDOWS
 else
 	UNAME := $(shell uname -s)
 	ifeq ($(UNAME),Linux)
-		OS = Linux
+		OS = LINUX
 	endif
 	ifeq ($(UNAME),Darwin)
-		OS = macOS
+		OS = MACOS
 	endif
 endif
 
-ifeq ($(OS),Linux)
+ifeq ($(OS),LINUX)
 	CC = gcc
 endif
-ifeq ($(OS),macOS)
+ifeq ($(OS),MACOS)
 	CC = clang
 endif
 
@@ -38,14 +40,18 @@ configure:
 	git submodule update --init --depth=1
 	cd raylib/src && $(MAKE) PLATFORM=PLATFORM_DESKTOP
 	@mkdir -p lib
-	mv raylib/src/libraylib.a lib
+	cp raylib/src/libraylib.a $(LIBRAYLIB_PATH)
 
 zoomify:
+	@if test ! -f "lib/libraylib.a"; then \
+		echo "WARNING: $(LIBRAYLIB_PATH) not found, running 'make configure'...";\
+		$(MAKE) -f $(THIS_FILE) configure; \
+	fi
 	@mkdir -p build
-ifeq ($(OS),Linux)
+ifeq ($(OS),LINUX)
 	@$(MAKE) -f $(THIS_FILE) linux_build
 endif
-ifeq ($(OS),macOS)
+ifeq ($(OS),MACOS)
 	@$(MAKE) -f $(THIS_FILE) macos_build
 endif
 
@@ -61,11 +67,28 @@ linux_build:
 macos_build:
 ifeq ($(BUILD_MODE),DEBUG)
 	xcodebuild -configuration Debug -scheme zoomify \
-		-destination 'platform=macOS,arch=arm64' SYMROOT="build/Debug" DSTROOT="build/Release"
+		-destination 'platform=macOS,arch=arm64' SYMROOT="build" DSTROOT="build"
 endif
 ifeq ($(BUILD_MODE),RELEASE)
 	xcodebuild -configuration Release -scheme zoomify \
-		-destination 'platform=macOS,arch=arm64' SYMROOT="build/Debug" DSTROOT="build/Release"
+		-destination 'platform=macOS,arch=arm64' SYMROOT="build" DSTROOT="build"
+endif
+
+install:
+	BUILD_MODE=RELEASE $(MAKE) -f $(THIS_FILE) zoomify
+ifeq ($(OS),MACOS)
+	sudo cp build/Release/zoomify /usr/local/bin/zoomify
+endif
+ifeq ($(OS),LINUX)
+	sudo cp build/zoomify /usr/local/bin/zoomify
+endif
+
+uninstall:
+ifeq ($(OS),MACOS)
+	rm /usr/bin/zoomify
+endif
+ifeq ($(OS),LINUX)
+	rm /usr/bin/zoomify
 endif
 
 clean:
