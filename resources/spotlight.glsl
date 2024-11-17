@@ -24,13 +24,13 @@ void main() {
     float dist = length(texCenter);
     vec4 color = fragColor;
 
-	if (dist > radius) {
-		float gray = 0.05;
-		color.x = gray;
-		color.y = gray;
-		color.z = gray;
-		color.w = opacity;
-	}
+    if (dist > radius) {
+        float gray = 0.05;
+        color.x = gray;
+        color.y = gray;
+        color.z = gray;
+        color.w = opacity;
+    }
 
     finalColor = color;
 }
