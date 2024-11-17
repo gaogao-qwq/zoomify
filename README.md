@@ -1,5 +1,7 @@
 # Zoomify, yet another zoomer application
 
+![showcase](output.gif)
+
 Yet another zoomer application on Linux & macOS implemented in [raylib](https://github.com/raysan5/raylib)
 with some personal needs that inspired by [Boomer](https://github.com/tsoding/boomer).
 
