@@ -3,6 +3,7 @@ build
 xcuserdata
 ftplugin
 
+include/shaders.h
 .DS_Store
 .cache
 compile_commands.json

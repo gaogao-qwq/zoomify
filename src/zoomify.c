@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <shaders.h>
 
 #if defined(__APPLE__)
 #include "macos_screenshot.h"
@@ -102,7 +103,7 @@ int main(void) {
     UnloadImage(screenshot);
 
     /* load fragment shader */
-    splShader = LoadShader("", "src/spotlight.glsl");
+    splShader = LoadShaderFromMemory(NULL, SPOTLIGHT_SHADER_SRC);
     /* get shader uniform location */
     getSpotlightShaderUniformLocation();
 

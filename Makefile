@@ -5,7 +5,8 @@ BUILD_MODE ?= DEBUG
 OS         ?= UNKNOWN
 THIS_FILE  ?= $(lastword $(MAKEFILE_LIST))
 
-LIBRAYLIB_PATH ?= lib/libraylib.a
+LIBRAYLIB_PATH      ?= lib/libraylib.a
+SHADER_HEADERS_PATH ?= include/shaders.h
 
 ifeq ($(OS),Windows_NT)
 	OS = WINDOWS
@@ -41,10 +42,16 @@ configure:
 	cd raylib/src && $(MAKE) PLATFORM=PLATFORM_DESKTOP
 	@mkdir -p lib
 	cp raylib/src/libraylib.a $(LIBRAYLIB_PATH)
+	@gcc -o build/generate_shader_header -O3 generate_shader_header.c
+	build/generate_shader_header
 
 zoomify:
-	@if test ! -f "lib/libraylib.a"; then \
+	@if test ! -f $(LIBRAYLIB_PATH); then \
 		echo "WARNING: $(LIBRAYLIB_PATH) not found, running 'make configure'..."; \
+		$(MAKE) -f $(THIS_FILE) configure; \
+	fi
+	@if test ! -f $(SHADER_HEADERS_PATH); then \
+		echo "WARNING: $(SHADER_HEADERS_PATH) not found, running 'make configure'..."; \
 		$(MAKE) -f $(THIS_FILE) configure; \
 	fi
 	@mkdir -p build
@@ -75,7 +82,7 @@ ifeq ($(BUILD_MODE),RELEASE)
 endif
 
 install:
-	BUILD_MODE=RELEASE $(MAKE) -f $(THIS_FILE) zoomify
+	@$(MAKE) -f $(THIS_FILE) zoomify BUILD_MODE=RELEASE
 ifeq ($(OS),MACOS)
 	sudo cp build/Release/zoomify /usr/local/bin/zoomify
 endif
