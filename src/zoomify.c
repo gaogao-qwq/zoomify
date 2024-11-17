@@ -87,6 +87,11 @@ int main(void) {
         fprintf(stderr, "screenshot %lu size: %lu\n", i, contextArray[i].size);
     }
 
+    if (showDebugInfo) {
+        SetTraceLogLevel(LOG_WARNING);
+    } else {
+        SetTraceLogLevel(LOG_INFO);
+    }
     SetConfigFlags(FLAG_VSYNC_HINT | FLAG_MSAA_4X_HINT);
     InitWindow(screenWidth, screenHeight, "magnifier");
     ToggleFullscreen();
