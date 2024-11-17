@@ -28,11 +28,11 @@ ifeq ($(OS),MACOS)
 endif
 
 ifeq ($(BUILD_MODE),DEBUG)
-	DEBUG_FLAG := -g -DDEBUG
+	COMPILE_FLAG := -g -DDEBUG
 endif
 
 ifeq ($(BUILD_MODE),RELEASE)
-	EXTRA_FLAG := -O3 -DRELEASE
+	COMPILE_FLAG := -O3 -DRELEASE
 endif
 
 all: zoomify
@@ -68,7 +68,7 @@ windows_build:
 linux_build:
 	$(CC) -o build/zoomify \
 		-I include -L lib -lm -lX11 \
-		-Wall -Wextra $(DEBUG_FLAG) $(EXTRA_FLAG) \
+		-Wall -Wextra $(COMPILE_FLAG) \
 		src/zoomify.c src/linux_screenshot.c lib/libraylib.a
 
 macos_build:
