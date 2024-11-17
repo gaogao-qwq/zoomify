@@ -1,4 +1,3 @@
-
 #include "linux_screenshot.h"
 
 #include <X11/X.h>
