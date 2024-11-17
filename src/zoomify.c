@@ -1,10 +1,10 @@
 #include <limits.h>
 #include <raylib.h>
 #include <raymath.h>
+#include <shaders.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <shaders.h>
 
 #if defined(__APPLE__)
 #include "macos_screenshot.h"
@@ -87,11 +87,11 @@ int main(void) {
         fprintf(stderr, "screenshot %lu size: %lu\n", i, contextArray[i].size);
     }
 
-    if (showDebugInfo) {
-        SetTraceLogLevel(LOG_WARNING);
-    } else {
-        SetTraceLogLevel(LOG_INFO);
-    }
+#if defined(DEBUG)
+    SetTraceLogLevel(LOG_INFO);
+#elif defined(RELEASE)
+    SetTraceLogLevel(LOG_WARNING);
+#endif
     SetConfigFlags(FLAG_VSYNC_HINT | FLAG_MSAA_4X_HINT);
     InitWindow(screenWidth, screenHeight, "magnifier");
     ToggleFullscreen();
