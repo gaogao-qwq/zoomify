@@ -39,7 +39,7 @@ all: zoomify
 
 configure:
 	git submodule update --init --depth=1
-	cd raylib/src && $(MAKE) PLATFORM=PLATFORM_DESKTOP
+	cd raylib/src && $(MAKE) MACOSX_DEPLOYMENT_TARGET=10.9 PLATFORM=PLATFORM_DESKTOP
 	@mkdir -p lib
 	cp raylib/src/libraylib.a $(LIBRAYLIB_PATH)
 	@gcc -o build/generate_shader_header -O3 generate_shader_header.c
