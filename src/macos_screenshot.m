@@ -28,7 +28,7 @@
 @end
 
 const ScreenshotContext *captureScreenshot(size_t *count) {
-    __block NSMutableArray *screenshot = [NSMutableArray array];
+    __block NSMutableArray<NSMutableData *> *screenshot = [NSMutableArray array];
     __block bool done = false;
 
     [SCShareableContent getShareableContentWithCompletionHandler:^(
@@ -40,52 +40,55 @@ const ScreenshotContext *captureScreenshot(size_t *count) {
           return;
       }
 
-      SCDisplay *display = shareableContent.displays[0];
-      SCContentFilter *filter = [[SCContentFilter alloc] initWithDisplay:display excludingWindows:@[]];
-      SCStreamConfiguration *config;
+      // take screenshot for all display
+      NSUInteger displayCount = [shareableContent.displays count];
+      __block NSUInteger doneCount = 0;
+      for (SCDisplay *display in shareableContent.displays) {
+          SCContentFilter *filter = [[SCContentFilter alloc] initWithDisplay:display excludingWindows:@[]];
+          SCStreamConfiguration *config;
 
-      config = [[SCStreamConfiguration alloc] init];
-      config.width = filter.contentRect.size.width * filter.pointPixelScale;
-      config.height = filter.contentRect.size.height * filter.pointPixelScale;
-      config.pixelFormat = kCVPixelFormatType_64RGBAHalf;
-      config.colorSpaceName = kCGColorSpaceExtendedDisplayP3;
+          config = [[SCStreamConfiguration alloc] init];
+          config.width = filter.contentRect.size.width * filter.pointPixelScale;
+          config.height = filter.contentRect.size.height * filter.pointPixelScale;
+          config.pixelFormat = kCVPixelFormatType_64RGBAHalf;
+          config.colorSpaceName = kCGColorSpaceExtendedDisplayP3;
 #if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_VERSION_15_0
-      config.captureDynamicRange = SCCaptureDynamicRangeHDRLocalDisplay;
+          config.captureDynamicRange = SCCaptureDynamicRangeHDRLocalDisplay;
 #endif
 
 #if defined(DEBUG)
-      NSLog(@"%@", [config propertiesToString]);
+          NSLog(@"%@", [config propertiesToString]);
 #endif
 
-      [SCScreenshotManager
-          captureImageWithFilter:filter
-                   configuration:config
-               completionHandler:^(CGImageRef _Nullable sampleBuffer, NSError *_Nullable error) {
-                 if (error) {
-                     NSLog(@"error: %@", [error localizedDescription]);
-                     done = true;
-                     return;
-                 }
+          [SCScreenshotManager
+              captureImageWithFilter:filter
+                       configuration:config
+                   completionHandler:^(CGImageRef _Nullable sampleBuffer, NSError *_Nullable error) {
+                     if (error) {
+                         NSLog(@"Failed to take screenshot: %@.", [error localizedDescription]);
+                         if (++doneCount == displayCount) done = true;
+                         return;
+                     }
 
-                 // create PNG destination context
-                 NSMutableData *pngData = [NSMutableData data];
-                 CGImageDestinationRef dest = CGImageDestinationCreateWithData((__bridge CFMutableDataRef)pngData, (CFStringRef)UTTypePNG.identifier, 1, nil);
-                 if (!dest) {
-                     NSLog(@"dest is nil");
-                     done = true;
-                     return;
-                 }
+                     // create PNG destination context
+                     NSMutableData *pngData = [NSMutableData data];
+                     CGImageDestinationRef dest = CGImageDestinationCreateWithData((__bridge CFMutableDataRef)pngData, (CFStringRef)UTTypePNG.identifier, 1, nil);
+                     if (!dest) {
+                         NSLog(@"Failed to take screenshot: PNG destination creation failed.");
+                         if (++doneCount == displayCount) done = true;
+                         return;
+                     }
 
-                 // add CGImage to destination
-                 CGImageDestinationAddImage(dest, sampleBuffer, nil);
-                 if (CGImageDestinationFinalize(dest)) {
-                     [screenshot addObject:pngData];
-                 } else {
-                     NSLog(@"failed to finalize image to destination");
-                 }
-
-                 done = true;
-               }];
+                     // add CGImage to destination
+                     CGImageDestinationAddImage(dest, sampleBuffer, nil);
+                     if (CGImageDestinationFinalize(dest)) {
+                         [screenshot addObject:pngData];
+                     } else {
+                         NSLog(@"Failed to take screenshot: finalize image failed.");
+                     }
+                     if (++doneCount == displayCount) done = true;
+                   }];
+      }
     }];
 
     while (!done) {
@@ -97,11 +100,12 @@ const ScreenshotContext *captureScreenshot(size_t *count) {
 
     ScreenshotContext *contextArray = malloc(*count * sizeof(ScreenshotContext));
     for (size_t i = 0; i < *count; ++i) {
+        NSLog(@"%lu", [screenshot[i] length]);
         size_t length = [screenshot[i] length];
         // copy screenshot image data to c array
         contextArray[i].data = malloc(length);
         memcpy(contextArray[i].data, [screenshot[i] bytes], length);
-        contextArray->size = length;
+        contextArray[i].size = length;
     }
 
     return contextArray;
