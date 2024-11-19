@@ -67,7 +67,7 @@ windows_build:
 
 linux_build:
 	$(CC) -o build/zoomify \
-		-I include -L lib -lm -lX11 \
+		-I include -L lib -lm -lX11 -lXinerama \
 		-Wall -Wextra $(COMPILE_FLAG) \
 		src/zoomify.c src/linux_screenshot.c lib/libraylib.a
 

@@ -3,6 +3,7 @@
 #include <X11/X.h>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
+#include <X11/extensions/Xinerama.h>
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -453,7 +454,7 @@ const ScreenshotContext *captureScreenshot(size_t *count) {
     Display *display;
     Window root;
     XImage *image;
-    int screen, width, height;
+    int x, y, width, height;
 
     display = XOpenDisplay(NULL);
     if (display == NULL) {
@@ -461,54 +462,65 @@ const ScreenshotContext *captureScreenshot(size_t *count) {
         return NULL;
     }
 
-    screen = DefaultScreen(display);
-    root = RootWindow(display, screen);
-    width = DisplayWidth(display, screen);
-    height = DisplayHeight(display, screen);
+    int scr_cnt;
+    XineramaScreenInfo *scr_info = XineramaQueryScreens(display, &scr_cnt);
+    ScreenshotContext *context_array = malloc(scr_cnt * sizeof(ScreenshotContext));
+    *count = scr_cnt;
 
-    image = XGetImage(display, root, 0, 0, width, height, AllPlanes, ZPixmap);
-    if (image == NULL) {
-        fprintf(stderr, "Failed to get image\n");
-        XCloseDisplay(display);
-        return NULL;
-    }
+    for (int i = 0; i < scr_cnt; ++i) {
+        x = scr_info[i].x_org;
+        y = scr_info[i].y_org;
+        width = scr_info[i].width;
+        height = scr_info[i].height;
+        fprintf(stderr, "screen %d: (%d, %d) %dx%d\n", i, x, y, width, height);
 
-    size_t rgba_size = width * height * 4;
-    unsigned char *rgba_data = (unsigned char *)malloc(rgba_size);
-    if (rgba_data == NULL) {
-        fprintf(stderr, "Failed to alloc memory for rgba_data\n");
-        XCloseDisplay(display);
-        XDestroyImage(image);
-        return NULL;
-    }
-
-    // convert XImage to RGBA
-    for (int y = 0; y < height; ++y) {
-        for (int x = 0; x < width; ++x) {
-            long pixel = XGetPixel(image, x, y);
-            rgba_data[(y * width + x) * 4 + 0] = (pixel & image->red_mask) >> 16;   // R
-            rgba_data[(y * width + x) * 4 + 1] = (pixel & image->green_mask) >> 8;  // G
-            rgba_data[(y * width + x) * 4 + 2] = (pixel & image->blue_mask);        // B
-            rgba_data[(y * width + x) * 4 + 3] = 255;                               // A
+        root = DefaultRootWindow(display);
+        image = XGetImage(display, root, x, y, width, height, AllPlanes, ZPixmap);
+        if (image == NULL) {
+            fprintf(stderr, "Failed to get image\n");
+            goto get_image_failed;
         }
+
+        size_t rgba_size = width * height * 4;
+        unsigned char *rgba_data = (unsigned char *)malloc(rgba_size);
+        if (rgba_data == NULL) {
+            fprintf(stderr, "Failed to alloc memory for rgba_data\n");
+            goto alloc_rgba_failed;
+        }
+
+        // convert XImage to RGBA
+        for (int y = 0; y < height; ++y) {
+            for (int x = 0; x < width; ++x) {
+                long pixel = XGetPixel(image, x, y);
+                rgba_data[(y * width + x) * 4 + 0] = (pixel & image->red_mask) >> 16;   // R
+                rgba_data[(y * width + x) * 4 + 1] = (pixel & image->green_mask) >> 8;  // G
+                rgba_data[(y * width + x) * 4 + 2] = (pixel & image->blue_mask);        // B
+                rgba_data[(y * width + x) * 4 + 3] = 255;                               // A
+            }
+        }
+
+        // convert RGBA to PNG format byte array
+        int png_size;
+        unsigned char *png_data = stbi_write_png_to_mem(rgba_data, width * 4, width, height, 4, &png_size);
+        if (png_data == NULL) {
+            fprintf(stderr, "Failed to convert rgba to png\n");
+            goto convert_png_failed;
+        }
+        context_array[i].data = png_data;
+        context_array[i].size = (size_t)png_size;
+
+        // free memory
+        free(rgba_data);
+        XDestroyImage(image);
     }
+
     XCloseDisplay(display);
-    XDestroyImage(image);
-
-    // convert RGBA to PNG format byte array
-    int png_size;
-    unsigned char *png_data = stbi_write_png_to_mem(rgba_data, width * 4, width, height, 4, &png_size);
-    if (png_data == NULL) {
-        fprintf(stderr, "Failed to convert rgba to png\n");
-        return NULL;
-    }
-    free(rgba_data);
-    fprintf(stderr, "Successfully convert rgba to png (size: %d)\n", png_size);
-
-    *count = 1;
-    ScreenshotContext *context_array = malloc(sizeof(ScreenshotContext));
-    context_array->data = png_data;
-    context_array->size = (size_t)png_size;
-
     return context_array;
+
+convert_png_failed:
+alloc_rgba_failed:
+    XDestroyImage(image);
+get_image_failed:
+    XCloseDisplay(display);
+    return NULL;
 }
