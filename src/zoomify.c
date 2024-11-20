@@ -19,6 +19,8 @@
 #define SPL_OPACITY_MIN ((float)0.0f)
 #define SPL_OPACITY_MAX ((float)0.9f)
 
+#define CANVAS_BACKGROUND_COLOR ((Color){35, 35, 35, 255})
+
 static int screenWidth, screenHeight;
 static int renderWidth, renderHeight;
 
@@ -135,7 +137,7 @@ int main(void) {
 
         /* rendering */
         BeginDrawing();
-            ClearBackground(BLACK);
+            ClearBackground(CANVAS_BACKGROUND_COLOR);
 
             BeginMode2D(cameraCtx.camera);
                 DrawTexture(screenshotTexture, 0, 0, WHITE);
