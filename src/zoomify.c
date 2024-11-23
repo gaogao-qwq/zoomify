@@ -80,13 +80,13 @@ int main(void) {
 
     contextArray = captureScreenshot(&contextCnt);
     if (!contextCnt) {
-        fprintf(stderr, "failed to capture screenshot\n");
+        TraceLog(LOG_WARNING, "failed to capture screenshot");
         return EXIT_FAILURE;
     }
 
-    printf("screenshot count: %lu\n", contextCnt);
+    TraceLog(LOG_WARNING, "screenshot count: %lu", contextCnt);
     for (size_t i = 0; i < contextCnt; ++i) {
-        fprintf(stderr, "screenshot %lu size: %lu\n", i, contextArray[i].size);
+        TraceLog(LOG_WARNING, "screenshot %lu size: %lu, pos: (%d, %d)", i, contextArray[i].size, contextArray[i].posx, contextArray[i].posy);
     }
 
 #if defined(DEBUG)

@@ -1,9 +1,39 @@
 #import "macos_screenshot.h"
-#import <Foundation/Foundation.h>
-#import <ImageIO/ImageIO.h>
 #import <ScreenCaptureKit/ScreenCaptureKit.h>
 #import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
 #import <objc/runtime.h>
+
+@interface INScreenshotContext : NSObject
+
+@property(copy) NSMutableData *data;
+@property NSInteger posx;
+@property NSInteger posy;
+
+@end
+
+@implementation INScreenshotContext
+
+- (instancetype)init {
+    self = [super init];
+    if (self) {
+        self.data = [[NSMutableData alloc] init];
+        self.posx = 0;
+        self.posy = 0;
+    }
+    return self;
+}
+
+- (instancetype)initWithData:(NSMutableData *)data posX:(NSInteger)x posY:(NSInteger)y {
+    self = [super init];
+    if (self) {
+        _data = data;
+        _posx = x;
+        _posy = y;
+    }
+    return self;
+}
+
+@end
 
 /* utility extension for debugging */
 @implementation NSObject (propertiesToString)
@@ -28,8 +58,9 @@
 @end
 
 const ScreenshotContext *captureScreenshot(size_t *count) {
-    __block NSMutableArray<NSMutableData *> *screenshot = [NSMutableArray array];
+    __block NSMutableArray<INScreenshotContext *> *screenshot = [NSMutableArray array];
     __block bool done = false;
+    NSArray<NSScreen *> *screens = [NSScreen screens];
 
     [SCShareableContent getShareableContentWithCompletionHandler:^(
                             SCShareableContent *_Nullable shareableContent,
@@ -40,10 +71,19 @@ const ScreenshotContext *captureScreenshot(size_t *count) {
           return;
       }
 
-      // take screenshot for all display
       NSUInteger displayCount = [shareableContent.displays count];
       __block NSUInteger doneCount = 0;
-      for (SCDisplay *display in shareableContent.displays) {
+
+      // take screenshot for all screen
+      for (NSScreen *screen in screens) {
+          SCDisplay *display = NULL;
+          for (SCDisplay *dis in shareableContent.displays) {
+              if (dis.displayID != [screen.deviceDescription[@"NSScreenNumber"] unsignedIntValue]) continue;
+              display = dis;
+              break;
+          }
+          if (display == NULL) continue;
+
           SCContentFilter *filter = [[SCContentFilter alloc] initWithDisplay:display excludingWindows:@[]];
           SCStreamConfiguration *config;
 
@@ -82,7 +122,11 @@ const ScreenshotContext *captureScreenshot(size_t *count) {
                      // add CGImage to destination
                      CGImageDestinationAddImage(dest, sampleBuffer, nil);
                      if (CGImageDestinationFinalize(dest)) {
-                         [screenshot addObject:pngData];
+                         INScreenshotContext *ctx = [[INScreenshotContext alloc] init];
+                         ctx.posx = screen.frame.origin.x;
+                         ctx.posy = screen.frame.origin.y;
+                         ctx.data = pngData;
+                         [screenshot addObject:ctx];
                      } else {
                          NSLog(@"Failed to take screenshot: finalize image failed.");
                      }
@@ -100,11 +144,12 @@ const ScreenshotContext *captureScreenshot(size_t *count) {
 
     ScreenshotContext *contextArray = malloc(*count * sizeof(ScreenshotContext));
     for (size_t i = 0; i < *count; ++i) {
-        NSLog(@"%lu", [screenshot[i] length]);
-        size_t length = [screenshot[i] length];
+        size_t length = [screenshot[i].data length];
         // copy screenshot image data to c array
         contextArray[i].data = malloc(length);
-        memcpy(contextArray[i].data, [screenshot[i] bytes], length);
+        memcpy(contextArray[i].data, [screenshot[i].data bytes], length);
+        contextArray[i].posx = (int)screenshot[i].posx;
+        contextArray[i].posy = (int)screenshot[i].posy;
         contextArray[i].size = length;
     }
 
