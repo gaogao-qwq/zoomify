@@ -7,10 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		725FC8742CF0F4BF008D2171 /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 72B043A22CDB35EA00925860 /* IOKit.framework */; };
+		725FC8752CF0F4CD008D2171 /* CoreVideo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 72B0439E2CDB35B500925860 /* CoreVideo.framework */; };
 		72B043842CDA252500925860 /* libraylib.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 72B043832CDA252500925860 /* libraylib.a */; };
 		72B043A52CDB35F200925860 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 72B043A42CDB35F200925860 /* Cocoa.framework */; };
-		72B043AC2CDB457500925860 /* CoreVideo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 72B0439E2CDB35B500925860 /* CoreVideo.framework */; };
-		72B043AD2CDB457D00925860 /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 72B043A22CDB35EA00925860 /* IOKit.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -29,12 +29,8 @@
 		72B043762CDA246000925860 /* zoomify */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = zoomify; sourceTree = BUILT_PRODUCTS_DIR; };
 		72B043832CDA252500925860 /* libraylib.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libraylib.a; path = lib/libraylib.a; sourceTree = "<group>"; };
 		72B0439E2CDB35B500925860 /* CoreVideo.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreVideo.framework; path = System/Library/Frameworks/CoreVideo.framework; sourceTree = SDKROOT; };
-		72B043A02CDB35C200925860 /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = System/Library/Frameworks/OpenGL.framework; sourceTree = SDKROOT; };
 		72B043A22CDB35EA00925860 /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = System/Library/Frameworks/IOKit.framework; sourceTree = SDKROOT; };
 		72B043A42CDB35F200925860 /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
-		72B043A62CDB35FA00925860 /* GLUT.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GLUT.framework; path = System/Library/Frameworks/GLUT.framework; sourceTree = SDKROOT; };
-		72B043A82CDB361A00925860 /* CoreAudioTypes.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreAudioTypes.framework; path = System/Library/Frameworks/CoreAudioTypes.framework; sourceTree = SDKROOT; };
-		72B043AA2CDB363700925860 /* CoreAudio.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreAudio.framework; path = System/Library/Frameworks/CoreAudio.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -70,8 +66,8 @@
 			files = (
 				72B043842CDA252500925860 /* libraylib.a in Frameworks */,
 				72B043A52CDB35F200925860 /* Cocoa.framework in Frameworks */,
-				72B043AC2CDB457500925860 /* CoreVideo.framework in Frameworks */,
-				72B043AD2CDB457D00925860 /* IOKit.framework in Frameworks */,
+				725FC8742CF0F4BF008D2171 /* IOKit.framework in Frameworks */,
+				725FC8752CF0F4CD008D2171 /* CoreVideo.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -99,12 +95,8 @@
 		72B043822CDA252500925860 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				72B043AA2CDB363700925860 /* CoreAudio.framework */,
-				72B043A82CDB361A00925860 /* CoreAudioTypes.framework */,
-				72B043A62CDB35FA00925860 /* GLUT.framework */,
 				72B043A42CDB35F200925860 /* Cocoa.framework */,
 				72B043A22CDB35EA00925860 /* IOKit.framework */,
-				72B043A02CDB35C200925860 /* OpenGL.framework */,
 				72B0439E2CDB35B500925860 /* CoreVideo.framework */,
 				72B043832CDA252500925860 /* libraylib.a */,
 			);
@@ -303,6 +295,7 @@
 				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
 				HEADER_SEARCH_PATHS = "$(PROJECT_DIR)/include";
+				LD_QUOTE_LINKER_ARGUMENTS_FOR_COMPILER_DRIVER = YES;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)/lib",
@@ -321,6 +314,7 @@
 				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
 				HEADER_SEARCH_PATHS = "$(PROJECT_DIR)/include";
+				LD_QUOTE_LINKER_ARGUMENTS_FOR_COMPILER_DRIVER = YES;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)/lib",
