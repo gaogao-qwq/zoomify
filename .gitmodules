@@ -1,5 +1,5 @@
 [submodule "raylib"]
 	path = raylib
 	url = https://github.com/raysan5/raylib.git
-	branch = 5.0
+	branch = 5.5
 	shallow = true
