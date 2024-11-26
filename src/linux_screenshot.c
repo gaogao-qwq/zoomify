@@ -24,6 +24,10 @@ const ScreenshotContext *captureScreenshot(size_t *count) {
 
     int scr_cnt;
     XineramaScreenInfo *scr_info = XineramaQueryScreens(display, &scr_cnt);
+    if (scr_info == NULL) {
+        fprintf(stderr, "Failed to query screens: Xinerama is not active\n");
+        goto query_screen_failed;
+    }
     ScreenshotContext *context_array = malloc(scr_cnt * sizeof(ScreenshotContext));
     *count = scr_cnt;
 
@@ -68,12 +72,15 @@ const ScreenshotContext *captureScreenshot(size_t *count) {
         }
         context_array[i].data = png_data;
         context_array[i].size = (size_t)png_size;
+        context_array[i].posx = x;
+        context_array[i].posy = y;
 
         // free memory
         free(rgba_data);
         XDestroyImage(image);
     }
 
+    XFree(scr_info);
     XCloseDisplay(display);
     return context_array;
 
@@ -82,5 +89,7 @@ alloc_rgba_failed:
     XDestroyImage(image);
 get_image_failed:
     XCloseDisplay(display);
+query_screen_failed:
+    XFree(scr_info);
     return NULL;
 }
