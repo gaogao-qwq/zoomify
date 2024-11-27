@@ -112,7 +112,8 @@ const ScreenshotContext *captureScreenshot(size_t *count) {
 
                      // create PNG destination context
                      NSMutableData *pngData = [NSMutableData data];
-                     CGImageDestinationRef dest = CGImageDestinationCreateWithData((__bridge CFMutableDataRef)pngData, (CFStringRef)UTTypePNG.identifier, 1, nil);
+                     CGImageDestinationRef dest = CGImageDestinationCreateWithData(
+                         (__bridge CFMutableDataRef)pngData, (CFStringRef)UTTypePNG.identifier, 1, nil);
                      if (!dest) {
                          NSLog(@"Failed to take screenshot: PNG destination creation failed.");
                          if (++doneCount == displayCount) done = true;
@@ -122,10 +123,10 @@ const ScreenshotContext *captureScreenshot(size_t *count) {
                      // add CGImage to destination
                      CGImageDestinationAddImage(dest, sampleBuffer, nil);
                      if (CGImageDestinationFinalize(dest)) {
-                         INScreenshotContext *ctx = [[INScreenshotContext alloc] init];
-                         ctx.posx = screen.frame.origin.x;
-                         ctx.posy = screen.frame.origin.y;
-                         ctx.data = pngData;
+                         INScreenshotContext *ctx = [[INScreenshotContext alloc]
+                             initWithData:pngData
+                                     posX:screen.frame.origin.x
+                                     posY:screen.frame.origin.y];
                          [screenshot addObject:ctx];
                      } else {
                          NSLog(@"Failed to take screenshot: finalize image failed.");
