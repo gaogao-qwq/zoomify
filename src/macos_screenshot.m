@@ -1,4 +1,5 @@
 #import "macos_screenshot.h"
+#include <CoreGraphics/CGImage.h>
 #import <ScreenCaptureKit/ScreenCaptureKit.h>
 #import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
 #import <objc/runtime.h>
@@ -8,6 +9,8 @@
 @property(copy) NSMutableData *data;
 @property NSInteger posx;
 @property NSInteger posy;
+@property size_t width;
+@property size_t height;
 
 @end
 
@@ -19,16 +22,20 @@
         self.data = [[NSMutableData alloc] init];
         self.posx = 0;
         self.posy = 0;
+        self.width = 0;
+        self.height = 0;
     }
     return self;
 }
 
-- (instancetype)initWithData:(NSMutableData *)data posX:(NSInteger)x posY:(NSInteger)y {
+- (instancetype)initWithData:(NSMutableData *)data posX:(NSInteger)x posY:(NSInteger)y width:(size_t)w height:(size_t)h {
     self = [super init];
     if (self) {
         _data = data;
         _posx = x;
         _posy = y;
+        _width = w;
+        _height = h;
     }
     return self;
 }
@@ -57,8 +64,8 @@
 }
 @end
 
-const ScreenshotContext *captureScreenshot(size_t *count) {
-    __block NSMutableArray<INScreenshotContext *> *screenshot = [NSMutableArray array];
+ScreenshotContext *captureScreenshot(size_t *count) {
+    __block NSMutableArray<INScreenshotContext *> *ctxArray = [NSMutableArray array];
     __block bool done = false;
     NSArray<NSScreen *> *screens = [NSScreen screens];
 
@@ -97,7 +104,7 @@ const ScreenshotContext *captureScreenshot(size_t *count) {
 #endif
 
 #if defined(DEBUG)
-          NSLog(@"%@", [config propertiesToString]);
+          // NSLog(@"%@", [config propertiesToString]);
 #endif
 
           [SCScreenshotManager
@@ -126,8 +133,11 @@ const ScreenshotContext *captureScreenshot(size_t *count) {
                          INScreenshotContext *ctx = [[INScreenshotContext alloc]
                              initWithData:pngData
                                      posX:screen.frame.origin.x
-                                     posY:screen.frame.origin.y];
-                         [screenshot addObject:ctx];
+                                     posY:screen.frame.origin.y
+                                    width:CGImageGetWidth(sampleBuffer)
+                                   height:CGImageGetHeight(sampleBuffer)];
+                         [ctxArray addObject:ctx];
+                         NSLog(@"%ld, %ld", ctx.width, ctx.height);
                      } else {
                          NSLog(@"Failed to take screenshot: finalize image failed.");
                      }
@@ -140,17 +150,19 @@ const ScreenshotContext *captureScreenshot(size_t *count) {
         [NSThread sleepForTimeInterval:0.01];
     }
 
-    *count = [screenshot count];
+    *count = [ctxArray count];
     if (!*count) return NULL;
 
     ScreenshotContext *contextArray = malloc(*count * sizeof(ScreenshotContext));
     for (size_t i = 0; i < *count; ++i) {
-        size_t length = [screenshot[i].data length];
+        size_t length = [ctxArray[i].data length];
         // copy screenshot image data to c array
         contextArray[i].data = malloc(length);
-        memcpy(contextArray[i].data, [screenshot[i].data bytes], length);
-        contextArray[i].posx = (int)screenshot[i].posx;
-        contextArray[i].posy = (int)screenshot[i].posy;
+        memcpy(contextArray[i].data, [ctxArray[i].data bytes], length);
+        contextArray[i].posx = (int)ctxArray[i].posx;
+        contextArray[i].posy = (int)ctxArray[i].posy;
+        contextArray[i].width = ctxArray[i].width;
+        contextArray[i].height = ctxArray[i].height;
         contextArray[i].size = length;
     }
 

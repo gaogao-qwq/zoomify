@@ -23,6 +23,7 @@
 
 static int screenWidth, screenHeight;
 static int renderWidth, renderHeight;
+static float screenScale;
 
 static bool showSpotlight = false;
 static bool showKeystrokeTips = true;
@@ -38,6 +39,24 @@ struct InputContext {
     Vector2 mouseDelta;
     float wheelDelta;
 } inputCtx = {0};
+
+struct ScreenshotTextureContext {
+    struct ScreenshotTex {
+        Texture2D tex;
+        int posx;
+        int posy;
+        size_t width;
+        size_t height;
+    } *screenshots;
+    size_t length;
+} screenshotTexCtx = {0};
+
+#define IS_SCREENSHOT_PRIMARY(idx) ((bool)!screenshotTexCtx.screenshots[i].posx && !screenshotTexCtx.screenshots[i].posy)
+#define TEX_OF_SCREENSHOT(idx) ((Texture2D)screenshotTexCtx.screenshots[i].tex)
+#define POSX_OF_SCREENSHOT(idx) ((int)screenshotTexCtx.screenshots[i].posx)
+#define POSY_OF_SCREENSHOT(idx) ((int)screenshotTexCtx.screenshots[i].posy)
+#define WIDTH_OF_SCREENSHOT(idx) ((int)screenshotTexCtx.screenshots[i].width)
+#define HEIGHT_OF_SCREENSHOT(idx) ((int)screenshotTexCtx.screenshots[i].height)
 
 struct CameraContext {
     Camera2D camera;
@@ -65,6 +84,7 @@ struct SpotlightShaderContext {
 
 static Shader splShader = {0};
 
+static int loadScreenshot(ScreenshotContext *ctxArray, size_t count);
 static void getSpotlightShaderUniformLocation(void);
 static void updateInputContext(void);
 static void updateCameraContext(void);
@@ -76,7 +96,7 @@ static void drawKeystrokeTips(void);
 
 int main(void) {
     size_t contextCnt;
-    const ScreenshotContext *contextArray;
+    ScreenshotContext *contextArray;
 
     contextArray = captureScreenshot(&contextCnt);
     if (!contextCnt) {
@@ -99,16 +119,7 @@ int main(void) {
     ToggleFullscreen();
 
     /* load screenshot into memory */
-    Image screenshot = LoadImageFromMemory(".png", contextArray[0].data, (int)contextArray[0].size);
-    Texture2D screenshotTexture = LoadTextureFromImage(screenshot);
-
-    /* free memory */
-    for (size_t i = 0; i < contextCnt; ++i) {
-        free(contextArray[i].data);
-    }
-    free((ScreenshotContext *)contextArray);
-    UnloadImage(screenshot);
-
+    loadScreenshot(contextArray, contextCnt);
     /* load fragment shader */
     splShader = LoadShaderFromMemory(NULL, SPOTLIGHT_SHADER_SRC);
     /* get shader uniform location */
@@ -120,12 +131,16 @@ int main(void) {
     screenHeight = GetMonitorHeight(currentMonitor);
     renderWidth = GetRenderWidth();
     renderHeight = GetRenderHeight();
+    screenScale = (float)renderWidth / (float)screenWidth;
 
     /* calculate camera zoom */
-    cameraCtx.camera.zoom = fminf((float)renderWidth / (float)screenshotTexture.width, (float)renderHeight / (float)screenshotTexture.height);
-    cameraCtx.targetZoom = cameraCtx.camera.zoom;
+    for (size_t i = 0; i < screenshotTexCtx.length; ++i) {
+        if (!IS_SCREENSHOT_PRIMARY(i)) continue;
+        cameraCtx.camera.zoom = 1 / screenScale;
+        cameraCtx.targetZoom = cameraCtx.camera.zoom;
+    }
 
-    RenderTexture2D splMask = LoadRenderTexture(screenWidth, screenHeight);
+    RenderTexture2D splMask = LoadRenderTexture(renderWidth, renderHeight);
 
     // clang-format off
     while(!WindowShouldClose()) {
@@ -140,7 +155,9 @@ int main(void) {
             ClearBackground(CANVAS_BACKGROUND_COLOR);
 
             BeginMode2D(cameraCtx.camera);
-                DrawTexture(screenshotTexture, 0, 0, WHITE);
+                for (size_t i = 0; i < screenshotTexCtx.length; ++i) {
+                    DrawTexture(TEX_OF_SCREENSHOT(i), POSX_OF_SCREENSHOT(i) * screenScale, POSY_OF_SCREENSHOT(i) * screenScale, WHITE);
+                }
             EndMode2D();
 
             BeginShaderMode(splShader);
@@ -163,9 +180,38 @@ int main(void) {
     /* unload everything */
     UnloadShader(splShader);
     UnloadRenderTexture(splMask);
-    UnloadTexture(screenshotTexture);
+    for (size_t i = 0; i < screenshotTexCtx.length; ++i) {
+        UnloadTexture(screenshotTexCtx.screenshots[i].tex);
+    }
+    free(screenshotTexCtx.screenshots);
     CloseWindow();
     return EXIT_SUCCESS;
+}
+
+int loadScreenshot(ScreenshotContext *ctxArray, size_t count) {
+    screenshotTexCtx.screenshots = malloc(sizeof(*screenshotTexCtx.screenshots) * count);
+    if (screenshotTexCtx.screenshots == NULL) {
+        return -1;
+    }
+    screenshotTexCtx.length = count;
+
+    /* load screenshot into memory */
+    for (size_t i = 0; i < count; ++i) {
+        Image image = LoadImageFromMemory(".png", ctxArray[i].data, (int)ctxArray[i].size);
+        screenshotTexCtx.screenshots[i].tex = LoadTextureFromImage(image);
+        screenshotTexCtx.screenshots[i].posx = ctxArray[i].posx;
+        screenshotTexCtx.screenshots[i].posy = ctxArray[i].posy;
+        screenshotTexCtx.screenshots[i].width = ctxArray[i].width;
+        screenshotTexCtx.screenshots[i].height = ctxArray[i].height;
+        UnloadImage(image);
+    }
+
+    /* free memory */
+    for (size_t i = 0; i < count; ++i) {
+        free(ctxArray[i].data);
+    }
+    free((ScreenshotContext *)ctxArray);
+    return 0;
 }
 
 void getSpotlightShaderUniformLocation(void) {

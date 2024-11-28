@@ -10,7 +10,7 @@
 // raylib is compiled with stb_image_write.h, thus there's no need to include
 extern unsigned char *stbi_write_png_to_mem(const unsigned char *pixels, int stride_bytes, int x, int y, int n, int *out_len);
 
-const ScreenshotContext *captureScreenshot(size_t *count) {
+ScreenshotContext *captureScreenshot(size_t *count) {
     Display *display;
     Window root;
     XImage *image;

@@ -8,8 +8,10 @@ typedef struct ScreenshotContext {
     size_t size;         /* image size */
     int posx;
     int posy;
+    int width;
+    int height
 } ScreenshotContext;
 
-const ScreenshotContext *captureScreenshot(size_t *);
+ScreenshotContext *captureScreenshot(size_t *);
 
 #endif
