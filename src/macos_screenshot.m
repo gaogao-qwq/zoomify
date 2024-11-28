@@ -11,6 +11,7 @@
 @property NSInteger posy;
 @property size_t width;
 @property size_t height;
+@property bool isPrimary;
 
 @end
 
@@ -24,11 +25,12 @@
         self.posy = 0;
         self.width = 0;
         self.height = 0;
+        self.isPrimary = false;
     }
     return self;
 }
 
-- (instancetype)initWithData:(NSMutableData *)data posX:(NSInteger)x posY:(NSInteger)y width:(size_t)w height:(size_t)h {
+- (instancetype)initWithData:(NSMutableData *)data posX:(NSInteger)x posY:(NSInteger)y width:(size_t)w height:(size_t)h isPrimary:(bool)primary {
     self = [super init];
     if (self) {
         _data = data;
@@ -36,6 +38,7 @@
         _posy = y;
         _width = w;
         _height = h;
+        _isPrimary = primary;
     }
     return self;
 }
@@ -104,7 +107,7 @@ ScreenshotContext *captureScreenshot(size_t *count) {
 #endif
 
 #if defined(DEBUG)
-          // NSLog(@"%@", [config propertiesToString]);
+            // NSLog(@"%@", [config propertiesToString]);
 #endif
 
           [SCScreenshotManager
@@ -135,7 +138,8 @@ ScreenshotContext *captureScreenshot(size_t *count) {
                                      posX:screen.frame.origin.x
                                      posY:screen.frame.origin.y
                                     width:CGImageGetWidth(sampleBuffer)
-                                   height:CGImageGetHeight(sampleBuffer)];
+                                   height:CGImageGetHeight(sampleBuffer)
+                                isPrimary:[NSScreen mainScreen] == screen];
                          [ctxArray addObject:ctx];
                          NSLog(@"%ld, %ld", ctx.width, ctx.height);
                      } else {
@@ -163,6 +167,7 @@ ScreenshotContext *captureScreenshot(size_t *count) {
         contextArray[i].posy = (int)ctxArray[i].posy;
         contextArray[i].width = ctxArray[i].width;
         contextArray[i].height = ctxArray[i].height;
+        contextArray[i].isPrimary = ctxArray[i].isPrimary;
         contextArray[i].size = length;
     }
 

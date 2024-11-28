@@ -72,8 +72,11 @@ ScreenshotContext *captureScreenshot(size_t *count) {
         }
         context_array[i].data = png_data;
         context_array[i].size = (size_t)png_size;
+        context_array[i].width = width;
+        context_array[i].height = height;
         context_array[i].posx = x;
         context_array[i].posy = y;
+        context_array[i].isPrimary = !scr_info[i].screen_number;
 
         // free memory
         free(rgba_data);

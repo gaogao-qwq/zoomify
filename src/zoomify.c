@@ -47,11 +47,12 @@ struct ScreenshotTextureContext {
         int posy;
         size_t width;
         size_t height;
+        bool isPrimary;
     } *screenshots;
     size_t length;
 } screenshotTexCtx = {0};
 
-#define IS_SCREENSHOT_PRIMARY(idx) ((bool)!screenshotTexCtx.screenshots[i].posx && !screenshotTexCtx.screenshots[i].posy)
+#define IS_SCREENSHOT_PRIMARY(idx) ((bool)!screenshotTexCtx.screenshots[i].isPrimary)
 #define TEX_OF_SCREENSHOT(idx) ((Texture2D)screenshotTexCtx.screenshots[i].tex)
 #define POSX_OF_SCREENSHOT(idx) ((int)screenshotTexCtx.screenshots[i].posx)
 #define POSY_OF_SCREENSHOT(idx) ((int)screenshotTexCtx.screenshots[i].posy)
@@ -203,6 +204,7 @@ int loadScreenshot(ScreenshotContext *ctxArray, size_t count) {
         screenshotTexCtx.screenshots[i].posy = ctxArray[i].posy;
         screenshotTexCtx.screenshots[i].width = ctxArray[i].width;
         screenshotTexCtx.screenshots[i].height = ctxArray[i].height;
+        screenshotTexCtx.screenshots[i].isPrimary = ctxArray[i].isPrimary;
         UnloadImage(image);
     }
 

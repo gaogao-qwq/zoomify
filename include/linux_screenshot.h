@@ -2,14 +2,16 @@
 #define LINUX_SCREENSHOT_H_ 1
 
 #include <stddef.h>
+#include <stdbool.h>
 
 typedef struct ScreenshotContext {
     unsigned char *data; /* image data */
     size_t size;         /* image size */
     int posx;
     int posy;
-    int width;
-    int height
+    size_t width;
+    size_t height;
+    bool isPrimary;
 } ScreenshotContext;
 
 ScreenshotContext *captureScreenshot(size_t *);
