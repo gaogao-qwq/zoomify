@@ -39,6 +39,7 @@ all: zoomify
 
 configure:
 	git submodule update --init --depth=1
+	cd raylib/src && $(MAKE) clean
 	cd raylib/src && $(MAKE) MACOSX_DEPLOYMENT_TARGET=10.9 PLATFORM=PLATFORM_DESKTOP
 	@mkdir -p lib
 	cp raylib/src/libraylib.a $(LIBRAYLIB_PATH)
