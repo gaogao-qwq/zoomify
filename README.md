@@ -2,7 +2,7 @@
 
 ![showcase](showcase.gif)
 
-Yet another zoomer application on Linux & macOS implemented in [raylib](https://github.com/raysan5/raylib)
+Yet another zoomer application on Linux(X11) & macOS implemented in [raylib](https://github.com/raysan5/raylib)
 with some personal needs that inspired by [Boomer](https://github.com/tsoding/boomer).
 
 ## Dependencies
@@ -37,10 +37,11 @@ macOS 14.0+, Xcode, Xcode Command Line Tool
 
 ### Linux & macOS
 
+This will build zoomify & cp the executable file to `/usr/local/bin/`, if you don't
+wanna do that, you can just run `make BUILD_MODE=RELEASE`, and the executable
+file will be located at `build/zoomify` (Linux) or `build/Release/zoomify` (macOS)
+
 ```sh
-# This will build zoomify & cp the executable file to `/usr/local/bin/`, if don't
-# wanna do that, you can just run `make BUILD_MODE=RELEASE`, and the executable
-# file will be located at `build/zoomify` (Linux) or `build/Release/zoomify` (macOS)
 make install
 zoomify
 ```
@@ -66,6 +67,7 @@ Not implement yet.
 - [ ] Multiscreen support
 - [ ] Draw on canvas
 - [ ] Save the selected screenshot as an image
+- [ ] Wayland support
 - [ ] Windows support
 
 ## License
