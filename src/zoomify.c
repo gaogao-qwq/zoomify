@@ -52,7 +52,7 @@ struct ScreenshotTextureContext {
     size_t length;
 } screenshotTexCtx = {0};
 
-#define IS_SCREENSHOT_PRIMARY(idx) ((bool)!screenshotTexCtx.screenshots[i].isPrimary)
+#define IS_SCREENSHOT_PRIMARY(idx) ((bool)screenshotTexCtx.screenshots[i].isPrimary)
 #define TEX_OF_SCREENSHOT(idx) ((Texture2D)screenshotTexCtx.screenshots[i].tex)
 #define POSX_OF_SCREENSHOT(idx) ((int)screenshotTexCtx.screenshots[i].posx)
 #define POSY_OF_SCREENSHOT(idx) ((int)screenshotTexCtx.screenshots[i].posy)
