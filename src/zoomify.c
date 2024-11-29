@@ -130,13 +130,14 @@ int main(void) {
     int currentMonitor = GetCurrentMonitor();
     screenWidth = GetMonitorWidth(currentMonitor);
     screenHeight = GetMonitorHeight(currentMonitor);
-    renderWidth = GetRenderWidth();
-    renderHeight = GetRenderHeight();
-    screenScale = (float)renderWidth / (float)screenWidth;
 
-    /* calculate camera zoom */
+    /* calculate camera zoom & set camera target to primary screen */
     for (size_t i = 0; i < screenshotTexCtx.length; ++i) {
         if (!IS_SCREENSHOT_PRIMARY(i)) continue;
+        renderWidth = WIDTH_OF_SCREENSHOT(i);
+        renderHeight = HEIGHT_OF_SCREENSHOT(i);
+        screenScale = (float)WIDTH_OF_SCREENSHOT(i) / (float)screenWidth;
+        cameraCtx.camera.target = (Vector2){POSX_OF_SCREENSHOT(i), POSY_OF_SCREENSHOT(i)};
         cameraCtx.camera.zoom = 1 / screenScale;
         cameraCtx.targetZoom = cameraCtx.camera.zoom;
     }
