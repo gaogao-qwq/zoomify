@@ -56,8 +56,10 @@ struct zoomifydApp: App {
     var body: some Scene {
         Window("Zoomify Settings", id: "zoomify-settings") {
             SettingsScreen()
-        }.defaultLaunchBehavior(.suppressed)
-        
+        }
+        .defaultLaunchBehavior(.suppressed)
+        .windowLevel(.floating)
+
         MenuBarExtra("Zoomifyd", systemImage: "magnifyingglass") {
             VStack {
                 Button("Open Zoomify") {
