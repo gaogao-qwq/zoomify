@@ -7,6 +7,8 @@ THIS_FILE  ?= $(lastword $(MAKEFILE_LIST))
 
 LIBRAYLIB_PATH      ?= lib/libraylib.a
 SHADER_HEADERS_PATH ?= include/shaders.h
+ZOOMIFY_XCWORKSPACE_PATH = zoomify.xcodeproj/project.xcworkspace
+ZOOMIFYD_XCWORKSPACE_PATH = zoomifyd/zoomifyd.xcodeproj/project.xcworkspace
 
 ifeq ($(OS),Windows_NT)
 	OS = WINDOWS
@@ -76,23 +78,25 @@ linux_build:
 macos_build:
 	build/generate_shader_header
 ifeq ($(BUILD_MODE),DEBUG)
-	xcodebuild -workspace zoomify.xcodeproj/project.xcworkspace \
+	# build zoomify
+	xcodebuild -workspace $(ZOOMIFY_XCWORKSPACE_PATH) \
 		-configuration Debug -scheme zoomify \
 		-destination 'platform=macOS,arch=arm64' SYMROOT="build" DSTROOT="build"
+	# build zoomifyd
 	cp build/Debug/zoomify zoomifyd/zoomifyd
-	xcodebuild \
-		-workspace zoomifyd/zoomifyd.xcodeproj/project.xcworkspace \
+	xcodebuild -workspace $(ZOOMIFYD_XCWORKSPACE_PATH) \
 		-scheme zoomifyd -configuration Debug \
 		archive -archivePath build/Debug/zoomifyd
 	rm zoomifyd/zoomifyd/zoomify
 endif
 ifeq ($(BUILD_MODE),RELEASE)
-	xcodebuild -workspace zoomify.xcodeproj/project.xcworkspace \
+	# build zoomify
+	xcodebuild -workspace $(ZOOMIFY_XCWORKSPACE_PATH) \
 		-configuration Release -scheme zoomify \
 		-destination 'platform=macOS,arch=arm64' DSTROOT="build"
+	# build zoomifyd
 	cp build/Release/zoomify zoomifyd/zoomifyd
-	xcodebuild \
-		-workspace zoomifyd/zoomifyd.xcodeproj/project.xcworkspace \
+	xcodebuild -workspace $(ZOOMIFYD_XCWORKSPACE_PATH) \
 		-scheme zoomifyd -configuration Release \
 		archive -archivePath build/Release/zoomifyd
 	rm zoomifyd/zoomifyd/zoomify
@@ -101,7 +105,7 @@ endif
 install:
 	@$(MAKE) -f $(THIS_FILE) zoomify BUILD_MODE=RELEASE
 ifeq ($(OS),MACOS)
-	sudo cp build/Release/zoomify /usr/local/bin/zoomify
+	cp -r build/Release/zoomifyd.xcarchive/Products/Applications/zoomifyd.app /Applications
 endif
 ifeq ($(OS),LINUX)
 	sudo cp build/zoomify /usr/local/bin/zoomify
@@ -109,7 +113,7 @@ endif
 
 uninstall:
 ifeq ($(OS),MACOS)
-	sudo rm /usr/local/bin/zoomify
+	rm -r /Applications/zoomifyd.app
 endif
 ifeq ($(OS),LINUX)
 	sudo rm /usr/local/bin/zoomify
