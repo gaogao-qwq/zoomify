@@ -44,13 +44,14 @@ zoomify
 
 For Linux, this will build zoomify and cp the executable file to `/usr/local/bin/`.
 If you don't wanna do that, you can just run `make BUILD_MODE=RELEASE`, and the executable
-file will be located at `build/zoomify` (Linux)
+file will be located at `build/zoomify`.
 
-For macOS, this will build zoomify and zoomifyd. The latter is a menu bar app
-which provides the ability to bind a shortcut to open zoomify globally. Which will
-be installed to `/Applications` folder. If you don't wanna do that, you can just
-run run `make BUILD_MODE=RELEASE`, and the `Zoomifyd.app` file will be located at
-`build/Release/zoomifyd.xcarchive/Products/Applications/zoomifyd.app`
+For macOS, this will build zoomify and zoomifyd, and cp `zoomifyd.app` to `/Applications`.
+Zoomifyd is a menu bar app which provides the ability to bind a shortcut to open
+zoomify globally. If you don't wanna install that, you can just run
+`make BUILD_MODE=RELEASE`, the zoomify will be located at `build/Release/zoomify`
+and the `zoomifyd.app` will be located at
+`build/Release/zoomifyd.xcarchive/Products/Applications/zoomifyd.app`.
 
 ![Zoomifyd](zoomifyd.png)
 
