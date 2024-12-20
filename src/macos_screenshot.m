@@ -1,5 +1,5 @@
 #import "macos_screenshot.h"
-#include <CoreGraphics/CGImage.h>
+#import <CoreGraphics/CGImage.h>
 #import <ScreenCaptureKit/ScreenCaptureKit.h>
 #import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
 #import <objc/runtime.h>
