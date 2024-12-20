@@ -43,7 +43,7 @@ configure:
 	cd raylib/src && $(MAKE) MACOSX_DEPLOYMENT_TARGET=10.9 PLATFORM=PLATFORM_DESKTOP
 	@mkdir -p lib
 	cp raylib/src/libraylib.a $(LIBRAYLIB_PATH)
-	@gcc -o build/generate_shader_header -O3 generate_shader_header.c
+	gcc -o build/generate_shader_header -O3 generate_shader_header.c
 	build/generate_shader_header
 
 zoomify:
@@ -67,19 +67,35 @@ windows_build:
 	@echo 'TODO: implement Windows build'
 
 linux_build:
+	build/generate_shader_header
 	$(CC) -o build/zoomify \
 		-I include -L lib -lm -lX11 -lXinerama \
 		-Wall -Wextra $(COMPILE_FLAG) \
 		src/zoomify.c src/linux_screenshot.c lib/libraylib.a
 
 macos_build:
+	build/generate_shader_header
 ifeq ($(BUILD_MODE),DEBUG)
-	xcodebuild -configuration Debug -scheme zoomify \
+	xcodebuild -workspace zoomify.xcodeproj/project.xcworkspace \
+		-configuration Debug -scheme zoomify \
 		-destination 'platform=macOS,arch=arm64' SYMROOT="build" DSTROOT="build"
+	cp build/Debug/zoomify zoomifyd/zoomifyd
+	xcodebuild \
+		-workspace zoomifyd/zoomifyd.xcodeproj/project.xcworkspace \
+		-scheme zoomifyd -configuration Debug \
+		archive -archivePath build/Debug/zoomifyd
+	rm zoomifyd/zoomifyd/zoomify
 endif
 ifeq ($(BUILD_MODE),RELEASE)
-	xcodebuild -configuration Release -scheme zoomify \
-		-destination 'platform=macOS,arch=arm64' SYMROOT="build" DSTROOT="build"
+	xcodebuild -workspace zoomify.xcodeproj/project.xcworkspace \
+		-configuration Release -scheme zoomify \
+		-destination 'platform=macOS,arch=arm64' DSTROOT="build"
+	cp build/Release/zoomify zoomifyd/zoomifyd
+	xcodebuild \
+		-workspace zoomifyd/zoomifyd.xcodeproj/project.xcworkspace \
+		-scheme zoomifyd -configuration Release \
+		archive -archivePath build/Release/zoomifyd
+	rm zoomifyd/zoomifyd/zoomify
 endif
 
 install:
@@ -93,10 +109,10 @@ endif
 
 uninstall:
 ifeq ($(OS),MACOS)
-	rm /usr/local/bin/zoomify
+	sudo rm /usr/local/bin/zoomify
 endif
 ifeq ($(OS),LINUX)
-	rm /usr/local/bin/zoomify
+	sudo rm /usr/local/bin/zoomify
 endif
 
 clean:
