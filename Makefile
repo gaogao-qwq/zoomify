@@ -1,4 +1,4 @@
-.PHONY: all zoomify configure clean install uninstall
+.PHONY: all zoomify configure parse_xcode_build_log clean install uninstall
 
 PLATFORM   ?= PLATFORM_DESKTOP
 BUILD_MODE ?= DEBUG
@@ -9,6 +9,7 @@ LIBRAYLIB_PATH      ?= lib/libraylib.a
 SHADER_HEADERS_PATH ?= include/shaders.h
 ZOOMIFY_XCWORKSPACE_PATH = zoomify.xcodeproj/project.xcworkspace
 ZOOMIFYD_XCWORKSPACE_PATH = zoomifyd/zoomifyd.xcodeproj/project.xcworkspace
+ZOOMIFYD_BUILD_LOG = build/zoomifyd_build.log
 
 ifeq ($(OS),Windows_NT)
 	OS = WINDOWS
@@ -86,7 +87,7 @@ ifeq ($(BUILD_MODE),DEBUG)
 	cp build/Debug/zoomify zoomifyd/zoomifyd
 	xcodebuild -workspace $(ZOOMIFYD_XCWORKSPACE_PATH) \
 		-scheme zoomifyd -configuration Debug \
-		archive -archivePath build/Debug/zoomifyd
+		archive -archivePath build/Debug/zoomifyd > $(ZOOMIFYD_BUILD_LOG)
 	rm zoomifyd/zoomifyd/zoomify
 endif
 ifeq ($(BUILD_MODE),RELEASE)
@@ -98,9 +99,18 @@ ifeq ($(BUILD_MODE),RELEASE)
 	cp build/Release/zoomify zoomifyd/zoomifyd
 	xcodebuild -workspace $(ZOOMIFYD_XCWORKSPACE_PATH) \
 		-scheme zoomifyd -configuration Release \
-		archive -archivePath build/Release/zoomifyd
+		archive -archivePath build/Release/zoomifyd > $(ZOOMIFYD_BUILD_LOG)
 	rm zoomifyd/zoomifyd/zoomify
 endif
+
+# parse xcodebuild build log to generate buildServer.json for sourcekit-lsp
+# require xcode-build-server cli
+parse_xcode_build_log:
+	@if test ! -f $(ZOOMIFYD_BUILD_LOG); then \
+		@echo "WARNING: $(ZOOMIFYD_BUILD_LOG) not found, running 'make macos_build' ..."; \
+		$(MAKE) -f $(THIS_FILE) macos_build; \
+	fi
+	xcode-build-server parse -a $(ZOOMIFYD_BUILD_LOG)
 
 install:
 	@$(MAKE) -f $(THIS_FILE) zoomify BUILD_MODE=RELEASE
