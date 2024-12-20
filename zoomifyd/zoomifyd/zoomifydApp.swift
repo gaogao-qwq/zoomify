@@ -2,7 +2,7 @@ import SwiftUI
 import KeyboardShortcuts
 
 extension KeyboardShortcuts.Name {
-    static let openZoomify = Self("openZoomify", default: .init(.z, modifiers: [.command, .shift]))
+    static let openZoomify = Self("openZoomify", default: .init(.s, modifiers: [.command, .shift]))
 }
 
 func openZoomify() {
@@ -58,11 +58,11 @@ struct zoomifydApp: App {
             SettingsScreen()
         }.defaultLaunchBehavior(.suppressed)
         
-        MenuBarExtra("Hello", systemImage: "magnifyingglass") {
+        MenuBarExtra("Zoomifyd", systemImage: "magnifyingglass") {
             VStack {
                 Button("Open Zoomify") {
                     openZoomify()
-                }.keyboardShortcut("z", modifiers: [.command, .shift])
+                }.globalKeyboardShortcut(.openZoomify)
                 Button("Zoomify Settings") {
                     openWindow(id: "zoomify-settings")
                 }
