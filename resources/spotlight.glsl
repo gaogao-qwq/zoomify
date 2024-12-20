@@ -26,10 +26,7 @@ void main() {
 
     if (dist > radius) {
         float gray = 0.05;
-        color.x = gray;
-        color.y = gray;
-        color.z = gray;
-        color.w = opacity;
+        color.rgba = vec4(gray, gray, gray, opacity);
     }
 
     finalColor = color;
