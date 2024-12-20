@@ -37,14 +37,22 @@ macOS 14.0+, Xcode, Xcode Command Line Tool
 
 ### Linux & macOS
 
-This will build zoomify & cp the executable file to `/usr/local/bin/`, if you don't
-wanna do that, you can just run `make BUILD_MODE=RELEASE`, and the executable
-file will be located at `build/zoomify` (Linux) or `build/Release/zoomify` (macOS)
-
 ```sh
 make install
 zoomify
 ```
+
+For Linux, this will build zoomify and cp the executable file to `/usr/local/bin/`.
+If you don't wanna do that, you can just run `make BUILD_MODE=RELEASE`, and the executable
+file will be located at `build/zoomify` (Linux)
+
+For macOS, this will build zoomify and zoomifyd. The latter is a menu bar app
+which provides the ability to bind a shortcut to open zoomify globally. Which will
+be installed to `/Applications` folder. If you don't wanna do that, you can just
+run run `make BUILD_MODE=RELEASE`, and the `Zoomifyd.app` file will be located at
+`build/Release/zoomifyd.xcarchive/Products/Applications/zoomifyd.app`
+
+![Zoomifyd](zoomifyd.png)
 
 ### Windows
 
@@ -64,7 +72,7 @@ Not implement yet.
 
 - [x] Basic functionality (zoom in & out, toggle spotlight)
 - [ ] Options by command line parameters
-- [ ] Multiscreen support
+- [x] Multiscreen support
 - [ ] Draw on canvas
 - [ ] Save the selected screenshot as an image
 - [ ] Wayland support
