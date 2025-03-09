@@ -1,9 +1,10 @@
 .PHONY: all zoomify configure parse_xcode_build_log clean install uninstall
 
-PLATFORM   ?= PLATFORM_DESKTOP
-BUILD_MODE ?= DEBUG
-OS         ?= UNKNOWN
-THIS_FILE  ?= $(lastword $(MAKEFILE_LIST))
+PLATFORM         ?= PLATFORM_DESKTOP
+BUILD_MODE       ?= DEBUG
+OS               ?= UNKNOWN
+XDG_SESSION_TYPE := $(XDG_SESSION_TYPE)
+THIS_FILE        ?= $(lastword $(MAKEFILE_LIST))
 
 LIBRAYLIB_PATH      ?= lib/libraylib.a
 SHADER_HEADERS_PATH ?= include/shaders.h
@@ -17,6 +18,12 @@ else
 	UNAME := $(shell uname -s)
 	ifeq ($(UNAME),Linux)
 		OS = LINUX
+		ifeq ($(XDG_SESSION_TYPE),x11)
+			COMPILE_FLAG += $(shell pkg-config --cflags --lib x11 xinerama) -DX11
+		endif
+		ifeq ($(XDG_SESSION_TYPE),wayland)
+			COMPILE_FLAG += $(shell pkg-config --cflags --libs dbus-1) -DWAYLAND
+		endif
 	endif
 	ifeq ($(UNAME),Darwin)
 		OS = MACOS
@@ -31,11 +38,11 @@ ifeq ($(OS),MACOS)
 endif
 
 ifeq ($(BUILD_MODE),DEBUG)
-	COMPILE_FLAG := -g -DDEBUG
+	COMPILE_FLAG += -g -DDEBUG
 endif
 
 ifeq ($(BUILD_MODE),RELEASE)
-	COMPILE_FLAG := -O3 -DRELEASE
+	COMPILE_FLAG += -O3 -DRELEASE
 endif
 
 all: zoomify
@@ -72,7 +79,7 @@ windows_build:
 linux_build:
 	build/generate_shader_header
 	$(CC) -o build/zoomify \
-		-I include -L lib -lm -lX11 -lXinerama \
+		-I include -L lib -lm \
 		-Wall -Wextra $(COMPILE_FLAG) \
 		src/zoomify.c src/linux_screenshot.c lib/libraylib.a
 
