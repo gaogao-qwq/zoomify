@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 // raylib is compiled with stb_image_write.h, thus there's no need to include
 extern unsigned char *stbi_write_png_to_mem(const unsigned char *pixels, int stride_bytes, int x, int y, int n, int *out_len);
@@ -102,9 +103,133 @@ query_screen_failed:
 
 #ifdef WAYLAND
 #include <dbus/dbus.h>
+#include <wayland-client.h>
+
+struct ctx {
+    int need_newline;
+    struct wl_list outputs;
+};
+
+struct output_t {
+    int id;
+    int size;
+    struct ctx *ctx;
+    struct wl_output *output;
+    struct wl_list link;
+};
+
+static void output_handle_geometry(void *data, [[maybe_unused]] struct wl_output *wl_output,
+                                   int32_t x, int32_t y, int32_t physical_width,
+                                   int32_t physical_height, int32_t subpixel,
+                                   const char *make, const char *model,
+                                   [[maybe_unused]] int32_t output_transform) {
+    struct output_t *out = (struct output_t *)data;
+    if (out->ctx->need_newline) {
+        putchar('\n');
+    } else {
+        out->ctx->need_newline = 1;
+    }
+    out->size = physical_width * physical_height;
+    printf("output %d\n---------\n", out->id);
+
+    printf("x: %d\n", x);
+    printf("y: %d\n", y);
+    printf("physical_width: %d\n", physical_width);
+    printf("physical_height: %d\n", physical_height);
+    printf("subpixel: %d\n", subpixel);
+    printf("make: %s\n", make);
+    printf("model: %s\n", model);
+}
+
+static void output_handle_mode(void *data, [[maybe_unused]] struct wl_output *wl_output,
+                               [[maybe_unused]] uint32_t flags, int32_t width, int32_t height,
+                               [[maybe_unused]] int32_t refresh) {
+    printf("width: %d\n", width);
+    printf("height: %d\n", height);
+    double dots = width * height;
+    double dots_per_mm = dots / ((struct output_t *)data)->size;
+    double dots_per_in = dots_per_mm / 0.155;
+    printf("dpi: %.1f\n", dots_per_in);
+}
+
+static void output_handle_done([[maybe_unused]] void *data, [[maybe_unused]] struct wl_output *wl_output) {}
+
+static void output_handle_scale([[maybe_unused]] void *data, [[maybe_unused]] struct wl_output *wl_output, int32_t scale) {
+    printf("scale: %d\n", scale);
+}
+
+static void output_handle_description([[maybe_unused]] void *data, [[maybe_unused]] struct wl_output *wl_output, [[maybe_unused]] const char *description) {}
+
+static void output_handle_name([[maybe_unused]] void *data, [[maybe_unused]] struct wl_output *wl_output, [[maybe_unused]] const char *name) {}
+
+static const struct wl_output_listener output_listener = {
+    .geometry = output_handle_geometry,
+    .mode = output_handle_mode,
+    .done = output_handle_done,
+    .scale = output_handle_scale,
+    .description = output_handle_description,
+    .name = output_handle_name,
+};
+
+static void global_registry_handler(void *data, struct wl_registry *registry,
+                                    uint32_t id, const char *interface,
+                                    uint32_t version) {
+    if (!strcmp(interface, "wl_output")) {
+        struct ctx *ctx = (struct ctx *)data;
+        struct output_t *output = malloc(sizeof(struct output_t));
+        output->ctx = ctx;
+        output->id = id;
+        output->output = wl_registry_bind(registry, id, &wl_output_interface, version);
+        wl_list_insert(&ctx->outputs, &output->link);
+        wl_output_add_listener(output->output, &output_listener, output);
+    }
+}
+
+static void global_registry_remover([[maybe_unused]] void *data, [[maybe_unused]] struct wl_registry *registry, [[maybe_unused]] uint32_t id) {}
+
+static const struct wl_registry_listener registry_listener = {
+    .global = global_registry_handler,
+    .global_remove = global_registry_remover,
+};
+
+void getDisplayInfo() {
+    struct wl_display *display;
+    struct wl_registry *registry;
+    struct ctx ctx;
+    struct output_t *out, *tmp;
+
+    // get wayland display info
+    if ((display = wl_display_connect(NULL)) == NULL) {
+        fprintf(stderr, "Failed to connect to wayland display\n");
+        goto connect_wayland_display_failed;
+    }
+
+    ctx.need_newline = 0;
+    wl_list_init(&ctx.outputs);
+    if ((registry = wl_display_get_registry(display)) == NULL) {
+        fprintf(stderr, "Failed to get wayland registry\n");
+        goto get_wayland_registry_failed;
+    }
+
+    wl_registry_add_listener(registry, &registry_listener, &ctx);
+    wl_display_dispatch(display);
+    wl_display_roundtrip(display);
+
+    wl_list_for_each_safe(out, tmp, &ctx.outputs, link) {
+        wl_output_destroy(out->output);
+        wl_list_remove(&out->link);
+        free(out);
+    }
+
+    wl_registry_destroy(registry);
+get_wayland_registry_failed:
+    wl_display_disconnect(display);
+connect_wayland_display_failed:
+    return;
+}
 
 /*
- * @brief Take screenshot via xdg-desktop-portal by dbus
+ * @brief Take screenshot via xdg-desktop-portal through dbus
  * org.freedesktop.impl.portal.Screenshot.Screenshot
  * https://flatpak.github.io/xdg-desktop-portal/docs/doc-org.freedesktop.portal.Screenshot.html
  *
@@ -125,6 +250,9 @@ ScreenshotContext *captureScreenshotWayland(size_t *count) {
     DBusMessageIter args_iter, options_iter, entries_iter, variants_iter, reply_iter, response_iter, response_dict_iter, value_iter;
     const char *key, *handle;
 
+    getDisplayInfo();
+
+    // capture screenshot via xdg-desktop-portal
     dbus_error_init(&error);
     conn = dbus_bus_get(DBUS_BUS_SESSION, &error);
     if (dbus_error_is_set(&error)) {

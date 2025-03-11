@@ -18,11 +18,12 @@ else
 	UNAME := $(shell uname -s)
 	ifeq ($(UNAME),Linux)
 		OS = LINUX
+		COMPILE_FLAG += $(shell pkg-config --cflags --libs x11 xinerama dbus-1 wayland-client)
 		ifeq ($(XDG_SESSION_TYPE),x11)
-			COMPILE_FLAG += $(shell pkg-config --cflags --lib x11 xinerama) -DX11
+			COMPILE_FLAG += -DX11
 		endif
 		ifeq ($(XDG_SESSION_TYPE),wayland)
-			COMPILE_FLAG += $(shell pkg-config --cflags --libs dbus-1) -DWAYLAND
+			COMPILE_FLAG += -DWAYLAND
 		endif
 	endif
 	ifeq ($(UNAME),Darwin)
