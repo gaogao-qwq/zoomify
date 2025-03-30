@@ -106,7 +106,7 @@ query_screen_failed:
 #include <wayland-client.h>
 
 // Display info part of wayland implementation uses code from
-// https://github.com/eklitzke/wlinfo, which is released
+// https://github.com/eklitzke/wlinfo, which is released under
 // the MIT license below:
 //
 // Copyright © 2016 Evan Klitzke
@@ -115,7 +115,7 @@ query_screen_failed:
 // Copyright © 2010-2011 Benjamin Franzke
 // Copyright © 2011-2012 Collabora, Ltd.
 // Copyright © 2010 Red Hat <mjg@redhat.com>
-//  
+//
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
 // to deal in the Software without restriction, including without limitation
@@ -141,58 +141,50 @@ query_screen_failed:
 //
 //     http://cgit.freedesktop.org/xorg/xserver/tree/COPYING
 
-struct ctx {
-    int need_newline;
+typedef struct WaylandDisplayInfo {
+    int id;
+    int x;
+    int y;
+    int width;
+    int height;
+} WaylandDisplayInfo;
+
+struct wl_display_context {
     struct wl_list outputs;
 };
 
 struct output_t {
     int id;
-    int size;
-    struct ctx *ctx;
+    int x;
+    int y;
+    int width;
+    int height;
+    struct wl_display_context *ctx;
     struct wl_output *output;
     struct wl_list link;
 };
 
 static void output_handle_geometry(void *data, [[maybe_unused]] struct wl_output *wl_output,
-                                   int32_t x, int32_t y, int32_t physical_width,
-                                   int32_t physical_height, int32_t subpixel,
-                                   const char *make, const char *model,
+                                   int32_t x, int32_t y, [[maybe_unused]] int32_t physical_width,
+                                   [[maybe_unused]] int32_t physical_height, [[maybe_unused]] int32_t subpixel,
+                                   [[maybe_unused]] const char *make, [[maybe_unused]] const char *model,
                                    [[maybe_unused]] int32_t output_transform) {
     struct output_t *out = (struct output_t *)data;
-    if (out->ctx->need_newline) {
-        putchar('\n');
-    } else {
-        out->ctx->need_newline = 1;
-    }
-    out->size = physical_width * physical_height;
-    printf("output %d\n---------\n", out->id);
-
-    printf("x: %d\n", x);
-    printf("y: %d\n", y);
-    printf("physical_width: %d\n", physical_width);
-    printf("physical_height: %d\n", physical_height);
-    printf("subpixel: %d\n", subpixel);
-    printf("make: %s\n", make);
-    printf("model: %s\n", model);
+    out->x = x;
+    out->y = y;
 }
 
 static void output_handle_mode(void *data, [[maybe_unused]] struct wl_output *wl_output,
                                [[maybe_unused]] uint32_t flags, int32_t width, int32_t height,
                                [[maybe_unused]] int32_t refresh) {
-    printf("width: %d\n", width);
-    printf("height: %d\n", height);
-    double dots = width * height;
-    double dots_per_mm = dots / ((struct output_t *)data)->size;
-    double dots_per_in = dots_per_mm / 0.155;
-    printf("dpi: %.1f\n", dots_per_in);
+    struct output_t *out = (struct output_t *)data;
+    out->width = width;
+    out->height = height;
 }
 
 static void output_handle_done([[maybe_unused]] void *data, [[maybe_unused]] struct wl_output *wl_output) {}
 
-static void output_handle_scale([[maybe_unused]] void *data, [[maybe_unused]] struct wl_output *wl_output, int32_t scale) {
-    printf("scale: %d\n", scale);
-}
+static void output_handle_scale([[maybe_unused]] void *data, [[maybe_unused]] struct wl_output *wl_output, [[maybe_unused]] int32_t scale) {}
 
 static void output_handle_description([[maybe_unused]] void *data, [[maybe_unused]] struct wl_output *wl_output, [[maybe_unused]] const char *description) {}
 
@@ -211,7 +203,7 @@ static void global_registry_handler(void *data, struct wl_registry *registry,
                                     uint32_t id, const char *interface,
                                     uint32_t version) {
     if (!strcmp(interface, "wl_output")) {
-        struct ctx *ctx = (struct ctx *)data;
+        struct wl_display_context *ctx = (struct wl_display_context *)data;
         struct output_t *output = malloc(sizeof(struct output_t));
         output->ctx = ctx;
         output->id = id;
@@ -228,11 +220,12 @@ static const struct wl_registry_listener registry_listener = {
     .global_remove = global_registry_remover,
 };
 
-void getDisplayInfo() {
+WaylandDisplayInfo *getDisplayInfo() {
     struct wl_display *display;
     struct wl_registry *registry;
-    struct ctx ctx;
+    struct wl_display_context ctx;
     struct output_t *out, *tmp;
+    WaylandDisplayInfo *infos = NULL;
 
     // get wayland display info
     if ((display = wl_display_connect(NULL)) == NULL) {
@@ -240,28 +233,38 @@ void getDisplayInfo() {
         goto connect_wayland_display_failed;
     }
 
-    ctx.need_newline = 0;
     wl_list_init(&ctx.outputs);
     if ((registry = wl_display_get_registry(display)) == NULL) {
         fprintf(stderr, "Failed to get wayland registry\n");
         goto get_wayland_registry_failed;
     }
-
     wl_registry_add_listener(registry, &registry_listener, &ctx);
+
     wl_display_dispatch(display);
     wl_display_roundtrip(display);
 
+    int len = wl_list_length(&ctx.outputs);
+    printf("screen count: %d\n", len);
+    int i = 0;
+    infos = (WaylandDisplayInfo *)malloc(sizeof(WaylandDisplayInfo) * len);
     wl_list_for_each_safe(out, tmp, &ctx.outputs, link) {
+        infos[i].id = out->id;
+        infos[i].width = out->width;
+        infos[i].height = out->height;
+        infos[i].x = out->x;
+        infos[i].y = out->y;
+        printf("id: %d, width: %d, height: %d, x: %d, y: %d\n", out->id, out->width, out->height, out->x, out->y);
         wl_output_destroy(out->output);
         wl_list_remove(&out->link);
         free(out);
+        ++i;
     }
 
     wl_registry_destroy(registry);
 get_wayland_registry_failed:
     wl_display_disconnect(display);
 connect_wayland_display_failed:
-    return;
+    return infos;
 }
 
 /*
@@ -283,10 +286,18 @@ connect_wayland_display_failed:
 ScreenshotContext *captureScreenshotWayland(size_t *count) {
     DBusError error;
     DBusConnection *conn;
-    DBusMessageIter args_iter, options_iter, entries_iter, variants_iter, reply_iter, response_iter, response_dict_iter, value_iter;
-    const char *key, *handle;
+    DBusMessageIter args_iter, options_iter, entries_iter, variants_iter, reply_iter, response_iter, response_dict_iter, screenshot_uri_value_iter;
+    const char *key, *screenshot_uri_value = "", *handle;
+    ScreenshotContext *screenshot_context = NULL;
+    FILE *fp;
+    long nbytes;
+    *count = 0;
 
-    getDisplayInfo();
+    WaylandDisplayInfo *display_infos = getDisplayInfo();
+    if (display_infos == NULL) {
+        fprintf(stderr, "Failed to get wayland display info");
+        goto get_display_info_failed;
+    }
 
     // capture screenshot via xdg-desktop-portal
     dbus_error_init(&error);
@@ -368,7 +379,6 @@ ScreenshotContext *captureScreenshotWayland(size_t *count) {
         goto unexpected_reply_type;
     }
     dbus_message_iter_get_basic(&reply_iter, &handle);
-    printf("handle: %s\n", handle);
 
     while (true) {
         dbus_connection_read_write(conn, 0);
@@ -376,9 +386,7 @@ ScreenshotContext *captureScreenshotWayland(size_t *count) {
         if (!msg) continue;
         if (!dbus_message_is_signal(msg, "org.freedesktop.portal.Request", "Response")) continue;
 
-        printf("Recvived %s.%s signal\n", dbus_message_get_interface(msg), dbus_message_get_member(msg));
         dbus_message_iter_init(msg, &response_iter);
-        printf("%d\n", dbus_message_iter_get_arg_type(&response_iter));
         if (dbus_message_iter_get_arg_type(&response_iter) != DBUS_TYPE_UINT32) {
             fprintf(stderr, "Expected results type for msg.response is uint32\n");
             goto unexpected_response_type;
@@ -400,17 +408,47 @@ ScreenshotContext *captureScreenshotWayland(size_t *count) {
         dbus_message_iter_get_basic(&entries_iter, &key);
         dbus_message_iter_next(&entries_iter);
 
-        dbus_message_iter_recurse(&entries_iter, &value_iter);
-        if (dbus_message_iter_get_arg_type(&value_iter) == DBUS_TYPE_STRING) {
-            const char *value;
-            dbus_message_iter_get_basic(&value_iter, &value);
-            printf("Result key: %s, value: %s\n", key, value);
+        if (!strcmp(key, "uri")) {
+            dbus_message_iter_recurse(&entries_iter, &screenshot_uri_value_iter);
+            dbus_message_iter_get_basic(&screenshot_uri_value_iter, &screenshot_uri_value);
+            printf("Result key: %s, value: %s\n", key, screenshot_uri_value);
         }
         dbus_message_iter_next(&response_dict_iter);
         dbus_message_unref(msg);
         break;
     }
 
+    // remove `file://' uri scheme prefix
+    screenshot_uri_value = screenshot_uri_value + 7;
+    fp = fopen(screenshot_uri_value, "r");
+    if (fp == NULL) {
+        fprintf(stderr, "Failed to open file: %s\n", screenshot_uri_value);
+        goto open_file_failed;
+    }
+
+    /* get screenshot file size */
+    fseek(fp, 0L, SEEK_END);
+    nbytes = ftell(fp);
+    printf("screenshot size: %ld\n", nbytes);
+    rewind(fp);
+
+    /* read screenshot into memory & delete file */
+    unsigned char *buf = malloc(sizeof(unsigned char) * nbytes);
+    fread(buf, sizeof(unsigned char), nbytes, fp);
+    fclose(fp);
+    remove(screenshot_uri_value);
+
+    screenshot_context = malloc(sizeof(ScreenshotContext));
+    screenshot_context->posx = display_infos[0].x;
+    screenshot_context->posy = display_infos[0].y;
+    screenshot_context->width = display_infos[0].width;
+    screenshot_context->height = display_infos[0].height;
+    screenshot_context->data = buf;
+    screenshot_context->size = nbytes;
+    screenshot_context->isPrimary = true;
+    *count = 1;
+
+open_file_failed:
 unexpected_response_type:
 unexpected_reply_type:
     dbus_message_unref(screenshot_reply);
@@ -420,17 +458,30 @@ send_dbus_request_failed:
 create_message_failed:
 connect_dbus_failed:
     dbus_error_free(&error);
-    *count = 0;
-    return NULL;
+get_display_info_failed:
+    return screenshot_context;
 }
 #endif  // Wayland
 
 ScreenshotContext *captureScreenshot(size_t *count) {
-#ifdef X11
-    return captureScreenshotX11(count);
-#endif
+    char *XDG_SESSION_TYPE = getenv("XDG_SESSION_TYPE");
+    if (!strcmp(XDG_SESSION_TYPE, "wayland")) {
 #ifdef WAYLAND
-    return captureScreenshotWayland(count);
+        return captureScreenshotWayland(count);
 #endif
+        fprintf(stderr,
+                "You are using a binary that not build with Wayland support,\n"
+                "try rebuild it without specifying DISPLAY_PROTOCOL environment variable\n");
+        return NULL;
+    }
+    if (!strcmp(XDG_SESSION_TYPE, "x11")) {
+#ifdef X11
+        return captureScreenshotX11(count);
+#endif
+        fprintf(stderr,
+                "You are using a binary that not build with X11 support,\n"
+                "try rebuild it without specifying DISPLAY_PROTOCOL environment variable\n");
+        return NULL;
+    }
     return NULL;
 }

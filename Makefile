@@ -3,7 +3,7 @@
 PLATFORM         ?= PLATFORM_DESKTOP
 BUILD_MODE       ?= DEBUG
 OS               ?= UNKNOWN
-XDG_SESSION_TYPE := $(XDG_SESSION_TYPE)
+DISPLAY_PROTOCOL ?= ALL
 THIS_FILE        ?= $(lastword $(MAKEFILE_LIST))
 
 LIBRAYLIB_PATH      ?= lib/libraylib.a
@@ -18,12 +18,14 @@ else
 	UNAME := $(shell uname -s)
 	ifeq ($(UNAME),Linux)
 		OS = LINUX
-		COMPILE_FLAG += $(shell pkg-config --cflags --libs x11 xinerama dbus-1 wayland-client)
-		ifeq ($(XDG_SESSION_TYPE),x11)
-			COMPILE_FLAG += -DX11
+		ifeq ($(DISPLAY_PROTOCOL),ALL)
+			COMPILE_FLAG += $(shell pkg-config --cflags --libs x11 xinerama dbus-1 wayland-client) -DX11 -DWAYLAND
 		endif
-		ifeq ($(XDG_SESSION_TYPE),wayland)
-			COMPILE_FLAG += -DWAYLAND
+		ifeq ($(DISPLAY_PROTOCOL),X11)
+			COMPILE_FLAG += $(shell pkg-config --cflags --libs x11 xinerama) -DX11
+		endif
+		ifeq ($(DISPLAY_PROTOCOL),WAYLAND)
+			COMPILE_FLAG += $(shell pkg-config --cflags --libs dbus-1 wayland-client) -DWAYLAND
 		endif
 	endif
 	ifeq ($(UNAME),Darwin)

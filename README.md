@@ -72,11 +72,11 @@ Not implement yet.
 ## TODO
 
 - [x] Basic functionality (zoom in & out, toggle spotlight)
-- [ ] Options by command line parameters
+- [x] Wayland support
 - [x] Multiscreen support
+- [ ] Options by command line parameters
 - [ ] Draw on canvas
 - [ ] Save the selected screenshot as an image
-- [ ] Wayland support
 - [ ] Windows support
 
 ## License

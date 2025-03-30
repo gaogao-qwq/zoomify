@@ -21,7 +21,7 @@
 
 #define CANVAS_BACKGROUND_COLOR ((Color){35, 35, 35, 255})
 
-static int screenWidth, screenHeight;
+static int screenWidth = 800, screenHeight = 600;
 static int renderWidth, renderHeight;
 static float screenScale;
 
@@ -100,7 +100,7 @@ int main(void) {
     ScreenshotContext *contextArray;
 
     contextArray = captureScreenshot(&contextCnt);
-    if (!contextCnt) {
+    if (!contextArray) {
         TraceLog(LOG_WARNING, "failed to capture screenshot");
         return EXIT_FAILURE;
     }
@@ -116,7 +116,14 @@ int main(void) {
     SetTraceLogLevel(LOG_WARNING);
 #endif
     SetConfigFlags(FLAG_VSYNC_HINT | FLAG_MSAA_4X_HINT);
-    InitWindow(screenWidth, screenHeight, "magnifier");
+    InitWindow(800, 600, "magnifier");
+
+    /* get resolution info */
+    int currentMonitor = GetCurrentMonitor();
+    screenWidth = GetMonitorWidth(currentMonitor);
+    screenHeight = GetMonitorHeight(currentMonitor);
+    printf("width: %d height: %d\n", screenWidth, screenHeight);
+    SetWindowSize(screenWidth, screenHeight);
     ToggleFullscreen();
 
     /* load screenshot into memory */
@@ -125,11 +132,6 @@ int main(void) {
     splShader = LoadShaderFromMemory(NULL, SPOTLIGHT_SHADER_SRC);
     /* get shader uniform location */
     getSpotlightShaderUniformLocation();
-
-    /* get resolution info */
-    int currentMonitor = GetCurrentMonitor();
-    screenWidth = GetMonitorWidth(currentMonitor);
-    screenHeight = GetMonitorHeight(currentMonitor);
 
     /* calculate camera zoom & set camera target to primary screen */
     for (size_t i = 0; i < screenshotTexCtx.length; ++i) {
@@ -190,7 +192,7 @@ int main(void) {
     return EXIT_SUCCESS;
 }
 
-int loadScreenshot(ScreenshotContext *ctxArray, size_t count) {
+int loadScreenshot(ScreenshotContext *ctxArr, size_t count) {
     screenshotTexCtx.screenshots = malloc(sizeof(*screenshotTexCtx.screenshots) * count);
     if (screenshotTexCtx.screenshots == NULL) {
         return -1;
@@ -199,21 +201,21 @@ int loadScreenshot(ScreenshotContext *ctxArray, size_t count) {
 
     /* load screenshot into memory */
     for (size_t i = 0; i < count; ++i) {
-        Image image = LoadImageFromMemory(".png", ctxArray[i].data, (int)ctxArray[i].size);
+        Image image = LoadImageFromMemory(".png", ctxArr[i].data, (int)ctxArr[i].size);
         screenshotTexCtx.screenshots[i].tex = LoadTextureFromImage(image);
-        screenshotTexCtx.screenshots[i].posx = ctxArray[i].posx;
-        screenshotTexCtx.screenshots[i].posy = ctxArray[i].posy;
-        screenshotTexCtx.screenshots[i].width = ctxArray[i].width;
-        screenshotTexCtx.screenshots[i].height = ctxArray[i].height;
-        screenshotTexCtx.screenshots[i].isPrimary = ctxArray[i].isPrimary;
+        screenshotTexCtx.screenshots[i].posx = ctxArr[i].posx;
+        screenshotTexCtx.screenshots[i].posy = ctxArr[i].posy;
+        screenshotTexCtx.screenshots[i].width = ctxArr[i].width;
+        screenshotTexCtx.screenshots[i].height = ctxArr[i].height;
+        screenshotTexCtx.screenshots[i].isPrimary = ctxArr[i].isPrimary;
         UnloadImage(image);
     }
 
     /* free memory */
     for (size_t i = 0; i < count; ++i) {
-        free(ctxArray[i].data);
+        free(ctxArr[i].data);
     }
-    free((ScreenshotContext *)ctxArray);
+    free((ScreenshotContext *)ctxArr);
     return 0;
 }
 
